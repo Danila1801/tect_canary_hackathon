@@ -31,6 +31,9 @@ and who needs to fix them?**
 - **Trust**: every answer gets a clear label: *verified*, *unverified*, *sources disagree* or *no trusted source*.
   It shows the exact sentences behind the answer and what it ignored, and why. Every document gets a trust score
   you can read line by line.
+- **Verify**: paste the reply you're about to send to a client. Canary checks every claim in it: *supported*,
+  *wrong* (a current source says otherwise), *disputed* (sources disagree, here's who to ask) or *no source*. Then it
+  gives you a safe version to send instead.
 - **Capture**: when an expert has answered the same question in three different chats, Canary turns those
   answers into a draft article. The expert only has to approve it.
 - **Connect**: when documents aren't enough, Canary tells you who to talk to and sends them the question with its

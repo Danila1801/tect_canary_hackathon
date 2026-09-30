@@ -11,6 +11,8 @@ import {
   Check,
   CheckCheck,
   ChevronRight,
+  ClipboardCheck,
+  Copy,
   CircleAlert,
   CircleCheck,
   Clock3,
@@ -29,7 +31,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import type { Analysis, AskResult, Doc, Issue, IssueKind } from "@/canary/types";
+import type { Analysis, AskResult, Doc, Issue, IssueKind, Verdict, VerifyResult } from "@/canary/types";
 
 export type Role = "consultant" | "owner" | "admin";
 export interface Account {
@@ -51,7 +53,7 @@ export interface Gap {
   asked_by: string;
   at: string;
 }
-type Tab = "Ask" | "Detect" | "Trust" | "Connect";
+type Tab = "Ask" | "Verify" | "Detect" | "Trust" | "Connect";
 type Action = "approve" | "dismiss";
 type DocMeta = Omit<Doc, "body">;
 
@@ -65,6 +67,7 @@ export type CanaryAppProps = {
   onLogin: (userId: string, password: string) => Promise<string | null>;
   onLogout: () => Promise<void>;
   onAsk: (question: string) => Promise<AskResult>;
+  onVerify: (draft: string) => Promise<VerifyResult>;
   onResolve: (issueId: string, action: Action) => Promise<string | null>;
   onRescan: () => Promise<string | null>;
 };
@@ -284,7 +287,7 @@ function SignIn({ personas, publicStats, onLogin }: CanaryAppProps) {
   );
 }
 
-function Workspace({ user, analysis, resolutions, gaps, onAsk, onResolve, onLogout, onRescan }: CanaryAppProps & { user: Account; analysis: Analysis }) {
+function Workspace({ user, analysis, resolutions, gaps, onAsk, onVerify, onResolve, onLogout, onRescan }: CanaryAppProps & { user: Account; analysis: Analysis }) {
   const [tab, setTab] = useState<Tab>("Ask");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<AskResult | null>(null);
@@ -400,7 +403,7 @@ function Workspace({ user, analysis, resolutions, gaps, onAsk, onResolve, onLogo
 
       <nav aria-label="Main navigation" className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-[1440px] gap-1 overflow-x-auto px-5 md:px-9 xl:px-12">
-          {(["Ask", "Detect", "Trust", "Connect"] as Tab[]).map((t) => (
+          {(["Ask", "Verify", "Detect", "Trust", "Connect"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -408,6 +411,7 @@ function Workspace({ user, analysis, resolutions, gaps, onAsk, onResolve, onLogo
               className={`flex h-14 shrink-0 items-center gap-2 border-b-[3px] px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
             >
               {t === "Ask" && <Search size={16} />}
+              {t === "Verify" && <ClipboardCheck size={16} />}
               {t === "Detect" && <Bell size={16} />}
               {t === "Trust" && <ShieldCheck size={16} />}
               {t === "Connect" && <Users size={16} />}
@@ -424,6 +428,7 @@ function Workspace({ user, analysis, resolutions, gaps, onAsk, onResolve, onLogo
         {tab === "Ask" && (
           <AskView question={question} setQuestion={setQuestion} ask={ask} answer={answer} askedQuestion={askedQuestion} loading={loading} docs={docs} claimCount={analysis.stats.grounded_claims} notify={notify} />
         )}
+        {tab === "Verify" && <VerifyView onVerify={onVerify} docs={docs} notify={notify} />}
         {tab === "Detect" && <DetectView issues={analysis.issues} resolved={resolved} filter={filter} setFilter={setFilter} docs={docs} claims={claims} security={analysis.security} user={user} resolve={resolve} />}
         {tab === "Trust" && <TrustView analysis={analysis} docs={docs} openDoc={openDoc} setOpenDoc={setOpenDoc} />}
         {tab === "Connect" && <ConnectView analysis={analysis} docs={docs} gaps={gaps} notify={notify} />}
@@ -660,6 +665,192 @@ function AnswerCard({ answer, question, docs, notify }: { answer: AskResult; que
   );
 }
 
+const EXAMPLE_DRAFT = `Hi Els,
+
+Thanks for your questions. Yes, your recruiters can keep asking candidates for their current salary in the first interview, that is still standard practice. For the overtime: monthly variable input needs to reach us by the 5th working day of the following month. The Dimona has to be filed at the latest when the new employee starts working. And employees have no right to any information about what colleagues earn, so you can refuse those requests.
+
+Kind regards,
+Ann`;
+
+const verdictCopy: Record<Verdict, { label: string; color: string; border: string; meaning: string }> = {
+  supported: { label: "Supported", color: "bg-success-soft text-success-foreground", border: "border-success/30", meaning: "A current source agrees" },
+  contradicted: { label: "Wrong", color: "bg-danger-soft text-danger-foreground", border: "border-danger-foreground/25", meaning: "A current source says otherwise" },
+  disputed: { label: "Disputed", color: "bg-conflict-soft text-conflict-foreground", border: "border-conflict/40", meaning: "Sources disagree" },
+  no_source: { label: "No source", color: "bg-muted text-muted-foreground", border: "border-border", meaning: "Nothing written covers it" },
+};
+
+function VerifyView({ onVerify, docs, notify }: { onVerify: (draft: string) => Promise<VerifyResult>; docs: Map<string, DocMeta>; notify: (v: string, bad?: boolean) => void }) {
+  const [draft, setDraft] = useState("");
+  const [result, setResult] = useState<VerifyResult | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function check(event?: FormEvent) {
+    event?.preventDefault();
+    if (draft.trim().length < 20 || loading) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      setResult(await onVerify(draft));
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Could not check the draft.", true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function copy(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      notify("Safe version copied. Review it before you send.");
+    } catch {
+      notify("Could not copy. Select the text instead.", true);
+    }
+  }
+
+  const counts = result?.counts;
+  const problems = counts ? counts.contradicted + counts.disputed + counts.no_source : 0;
+  return (
+    <>
+      <SectionHead eyebrow="02 / Verify" title="Check your reply before you send it." description="Paste the email you're about to send to a client. Canary checks every claim in it against current, owned sources." />
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_296px]">
+        <div className="min-w-0">
+          <form onSubmit={check} className="rounded-lg border border-border bg-card p-5 shadow-sm sm:p-6">
+            <label htmlFor="draft" className="block text-sm font-semibold">
+              Your draft reply
+            </label>
+            <textarea
+              id="draft"
+              value={draft}
+              maxLength={2000}
+              rows={9}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Hi Els, …"
+              className="mt-3 w-full resize-y rounded-md border border-input bg-background p-4 text-sm leading-6 outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(EXAMPLE_DRAFT);
+                  setResult(null);
+                }}
+                className="rounded border border-border bg-background px-2.5 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Load an example draft <ArrowUpRight size={11} className="inline" />
+              </button>
+              <Button type="submit" disabled={loading || draft.trim().length < 20}>
+                <ClipboardCheck size={16} /> {loading ? "Checking every statement…" : "Check before sending"}
+              </Button>
+            </div>
+          </form>
+
+          {loading && (
+            <div aria-live="polite" className="mt-6 animate-pulse rounded-lg border border-border bg-card p-7 text-sm font-semibold text-primary shadow-sm">
+              Splitting your draft into statements and checking each one against the sources…
+            </div>
+          )}
+
+          {result && !loading && result.status === "blocked" && (
+            <div className="mt-6 rounded-lg bg-ink p-6 text-sm text-primary-foreground">This draft contains instructions aimed at the assistant, so it was not sent to the model.</div>
+          )}
+
+          {result && counts && !loading && result.status === "checked" && (
+            <div className="mt-6 space-y-4">
+              <div className={`rounded-lg p-5 ${result.safe_to_send ? "bg-success-soft text-success-foreground" : "bg-navy text-primary-foreground"}`}>
+                <div className="flex items-center gap-2 text-lg font-semibold">
+                  {result.safe_to_send ? <CircleCheck size={20} /> : <ShieldAlert size={20} className="text-brand-bird" />}
+                  {result.safe_to_send ? "Safe to send." : "Don't send this yet."}
+                </div>
+                <p className={`mt-1 text-sm ${result.safe_to_send ? "" : "text-primary-foreground/70"}`}>
+                  {result.safe_to_send
+                    ? "Every statement is backed by a current source."
+                    : `${counts.contradicted} wrong, ${counts.disputed} disputed, ${counts.no_source} without a source, ${counts.supported} supported. ${problems} statement${problems === 1 ? "" : "s"} to fix.`}
+                </p>
+              </div>
+
+              {result.statements.map((s, i) => (
+                <article key={i} className={`rounded-lg border bg-card p-5 shadow-sm ${verdictCopy[s.verdict].border}`}>
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <IconBadge className={verdictCopy[s.verdict].color}>{verdictCopy[s.verdict].label}</IconBadge>
+                    <span className="text-[11px] text-muted-foreground">{s.topic.replaceAll(".", " / ").replaceAll("_", " ")}</span>
+                  </div>
+                  <blockquote className="border-l-2 border-border pl-3 text-sm italic leading-6">&ldquo;{s.text}&rdquo;</blockquote>
+                  {s.explanation && <p className="mt-3 text-sm leading-6 text-muted-foreground">{s.explanation}</p>}
+                  {s.correction && (
+                    <p className="mt-3 rounded-md bg-success-soft/50 px-3 py-2 text-sm leading-6">
+                      <span className="font-semibold text-success-foreground">Write instead: </span>
+                      {s.correction}
+                    </p>
+                  )}
+                  {s.citations.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {s.citations.map((cite) => (
+                        <div key={cite.doc_id} className="rounded-md border border-border bg-background p-3 text-xs">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span>
+                              <span className="font-mono font-semibold text-primary">{cite.doc_id}</span> · {cite.title} · {docs.get(cite.doc_id)?.owner || "no owner"}
+                            </span>
+                            <IconBadge className={cite.trust >= 70 ? "bg-success-soft text-success-foreground" : "bg-warning-soft text-warning-foreground"}>Trust {cite.trust}</IconBadge>
+                          </div>
+                          <div className="mt-2 italic text-foreground/80">&ldquo;{cite.quote}&rdquo;</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {s.route && (
+                    <div className="mt-4 flex items-center gap-3 border-t border-border pt-3 text-xs">
+                      <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">{initials(s.route.name)}</span>
+                      <span>
+                        <span className="font-semibold">{s.route.name}</span> <span className="text-muted-foreground">· {s.route.team}</span>
+                        <span className="block text-muted-foreground">{s.route.reason}</span>
+                      </span>
+                    </div>
+                  )}
+                </article>
+              ))}
+
+              {result.corrected_draft && (
+                <div className="rounded-lg border border-dashed border-primary/35 bg-card p-5 shadow-sm">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-primary">
+                      <Sparkles size={13} /> Suggested safe version <span className="font-normal normal-case tracking-normal text-muted-foreground">· review before sending</span>
+                    </div>
+                    <Button size="small" variant="outline" onClick={() => copy(result.corrected_draft)}>
+                      <Copy size={13} /> Copy
+                    </Button>
+                  </div>
+                  <p className="whitespace-pre-line text-sm leading-6">{result.corrected_draft}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <aside className="space-y-6">
+          <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
+              <ClipboardCheck size={16} className="text-primary" /> Why this matters
+            </div>
+            <p className="text-xs leading-5 text-muted-foreground">
+              A wrong answer costs the most once it reaches a client. Canary checks the reply at the last moment, when it can still be fixed, and tells you who to ask about anything it can&apos;t confirm.
+            </p>
+          </div>
+          <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+            <div className="mb-4 text-sm font-semibold">Verdicts</div>
+            <div className="space-y-3">
+              {(Object.keys(verdictCopy) as Verdict[]).map((v) => (
+                <div key={v} className="flex items-center justify-between gap-2">
+                  <IconBadge className={verdictCopy[v].color}>{verdictCopy[v].label}</IconBadge>
+                  <span className="text-right text-[11px] text-muted-foreground">{verdictCopy[v].meaning}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </>
+  );
+}
+
 function DetectView({
   issues,
   resolved,
@@ -687,7 +878,7 @@ function DetectView({
   const lawDocs = new Set(lawIssues.map((i) => i.doc_ids[0])).size;
   return (
     <>
-      <SectionHead eyebrow="02 / Detect" title="The things that need a second look." description="Outdated rules, conflicting guidance and answers that only live in chats, brought into the open." />
+      <SectionHead eyebrow="03 / Detect" title="The things that need a second look." description="Outdated rules, conflicting guidance and answers that only live in chats, brought into the open." />
       {legal && lawIssues.length > 0 && (
         <div className="relative mb-7 overflow-hidden rounded-lg bg-navy p-6 text-primary-foreground sm:p-8">
           <div className="absolute right-0 top-0 h-full w-1/3 opacity-10 [background:repeating-linear-gradient(135deg,transparent,transparent_16px,currentColor_17px,currentColor_18px)]" />
@@ -850,7 +1041,7 @@ function TrustView({ analysis, docs, openDoc, setOpenDoc }: { analysis: Analysis
   const ranked = [...analysis.trust].sort((a, b) => b.score - a.score);
   return (
     <>
-      <SectionHead eyebrow="03 / Trust" title="Know what your sources are worth." description="Every score is a formula, not a vibe. Click a source to see exactly where its points come from." />
+      <SectionHead eyebrow="04 / Trust" title="Know what your sources are worth." description="Every score is a formula, not a vibe. Click a source to see exactly where its points come from." />
       <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="hidden grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_110px_95px_160px] gap-4 border-b border-border bg-muted/50 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground lg:grid">
           <span>Source</span>
@@ -921,7 +1112,7 @@ function ConnectView({ analysis, docs, gaps, notify }: { analysis: Analysis; doc
   const experts = [...analysis.experts].sort((a, b) => Number(gapTopics.has(b.topic)) - Number(gapTopics.has(a.topic)) || b.contributions - a.contributions);
   return (
     <>
-      <SectionHead eyebrow="04 / Connect" title="Find the person behind the answer." description="When the documents run out, the right expert shouldn't be hard to find." />
+      <SectionHead eyebrow="05 / Connect" title="Find the person behind the answer." description="When the documents run out, the right expert shouldn't be hard to find." />
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="grid auto-rows-max gap-4 md:grid-cols-2">
           {experts.map((expert, i) => (

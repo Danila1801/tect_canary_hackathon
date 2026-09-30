@@ -90,6 +90,26 @@ export interface Analysis {
   };
 }
 
+export type Verdict = "supported" | "contradicted" | "disputed" | "no_source";
+
+export interface VerifyStatement {
+  text: string;
+  verdict: Verdict;
+  topic: string;
+  explanation: string;
+  correction: string;
+  citations: { doc_id: string; quote: string; trust: number; title: string }[];
+  route: { name: string; team: string; reason: string } | null;
+}
+
+export interface VerifyResult {
+  status: "checked" | "blocked";
+  safe_to_send: boolean;
+  statements: VerifyStatement[];
+  corrected_draft: string;
+  counts: Record<Verdict, number>;
+}
+
 export interface AskResult {
   status: "answered" | "unverified" | "conflict" | "no_source" | "blocked";
   answer: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Analysis, AskResult } from "@/canary/types";
+import type { Analysis, AskResult, VerifyResult } from "@/canary/types";
 import { CanaryApp, type Account, type Gap, type Resolution } from "./ui/CanaryApp";
 
 async function api<T>(path: string, init?: RequestInit): Promise<{ ok: boolean; status: number; data: T }> {
@@ -57,6 +57,12 @@ export default function CanaryLive({ publicStats }: { publicStats: { docs: numbe
     return res.data;
   }
 
+  async function onVerify(draft: string): Promise<VerifyResult> {
+    const res = await api<VerifyResult & { error?: string }>("/api/verify", { method: "POST", body: JSON.stringify({ draft }) });
+    if (!res.ok) throw new Error(res.data.error ?? "Something went wrong");
+    return res.data;
+  }
+
   async function onResolve(issueId: string, action: "approve" | "dismiss"): Promise<string | null> {
     const res = await api<{ resolution?: Resolution; error?: string }>("/api/issues/resolve", { method: "POST", body: JSON.stringify({ issue_id: issueId, action }) });
     if (!res.ok || !res.data.resolution) return res.data.error ?? `Refused (${res.status})`;
@@ -84,6 +90,7 @@ export default function CanaryLive({ publicStats }: { publicStats: { docs: numbe
       onLogin={onLogin}
       onLogout={onLogout}
       onAsk={onAsk}
+      onVerify={onVerify}
       onResolve={onResolve}
       onRescan={onRescan}
     />

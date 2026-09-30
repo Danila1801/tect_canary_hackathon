@@ -45,6 +45,24 @@ Sign in as:
 - **Marc**, a content owner. He approves fixes to his own documents.
 - **Sofie**, a knowledge admin. She can do everything, including a re-scan.
 
+## How to go through the app (5 minutes)
+
+1. **Sign in** as Ann (password from `.env.local`).
+2. **Ask** tab: click the example chips one by one.
+   - "Can recruiters ask current salary?" gives a *verified* answer. It ignores the outdated playbook and the
+     poisoned Teams message, and warns Marc.
+   - "Payroll input deadline": the sources *disagree* (3rd vs 5th working day). It goes to Koen.
+   - "Cross-border social security": *unverified*, because only Jonas's chats say it.
+   - "Bike allowance": *no trusted source*, so it's logged as a knowledge gap.
+3. **Verify** tab: click "Load an example draft", then "Check before sending". Canary finds 2 wrong claims and 1
+   disputed claim, and gives you a safe version.
+4. **Detect** tab: the legal-change banner, then the issue cards with side-by-side quotes, suggested rewrites and
+   owners. As Ann, the Approve buttons are locked on other people's documents.
+5. **Trust** tab: click any document to see how its score is calculated.
+6. **Connect** tab: who knows what, and the live list of knowledge gaps.
+7. Sign out and sign in as **Marc**: now you can approve the fix to his playbook. As **Sofie** (admin) you can
+   approve anything and press "Re-scan sources" (takes about 30 seconds).
+
 ## The story in 30 seconds (everyone should be able to say this)
 
 A client calls Ann: *"Can our recruiters still ask candidates what they earn?"* The company's own playbook says yes,

@@ -11,6 +11,9 @@ fix. It also finds documents that contradict each other, documents with no owner
 country, and knowledge that only lives in chats. It turns that chat knowledge into draft articles for the expert to
 approve.
 
+Before a consultant sends a reply, Canary checks every claim in it: wrong, disputed, unsourced or supported, with a
+safe version to send instead. That's the moment a wrong answer is still cheap to fix.
+
 Every answer shows whether you can trust it (verified, unverified, sources disagree, no trusted source), the exact
 sentences behind it, what it ignored and why, and who to talk to when documents aren't enough.
 
