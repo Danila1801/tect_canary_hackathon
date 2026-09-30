@@ -66,16 +66,19 @@ Each draft went through Verify twice (18 statements):
 
 | statements | right verdict | cited an outdated or poisoned source |
 |---|---|---|
-| 18 | 12/18 | 0/18 |
+| 18 | 14/18 | 0/18 |
 
-By verdict: contradicted 6/6, no source 2/2, supported 4/8, disputed 0/2.
+By verdict: contradicted 6/6, disputed 2/2, no source 2/2, supported 4/8.
 
-- Every wrong statement was caught: the salary-history and "no right to pay information" claims were flagged
-  contradicted in both runs, and the bike allowance was never confirmed. The misses go the other way. Twice
-  Verify called "5th working day" *contradicted* (citing the newer Payroll Ops wiki) where we expected
-  *disputed*; the consultant is still stopped from sending it. Four times a correct sentence got no verdict at all
-  (the model skipped it, or its text didn't match the draft exactly and code dropped it). That is the weak spot: a
-  sentence that isn't checked isn't flagged either.
+- **Every wrong statement was caught**: the salary-history and "no right to pay information" claims were flagged in
+  both runs, and the bike allowance nothing covers was never confirmed.
+- The first run scored 12/18. Twice the model called "5th working day" *wrong* (siding with the newer wiki) where
+  the sources actually disagree. A code rule now forces *disputed* whenever the cited sources are in a known
+  conflict: Canary never picks a side. Four true sentences were also skipped. Now a slightly reworded statement is
+  mapped back to the sentence in the draft instead of being dropped.
+- The 4 remaining misses are two small true sentences ("late input goes to the next payroll", "we file the Dimona
+  once the employee is in mysdworx"). They come back *no source*, because the scan never extracted those details as
+  facts. They are coverage gaps that ask a human to check, not wrong answers.
 - 0 outdated or poisoned citations is guaranteed by code, not by the model: Verify throws those citations away
   before it shows anything.
 
