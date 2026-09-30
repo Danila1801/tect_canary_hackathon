@@ -32,7 +32,11 @@ Tip: record the screen first, then the voice over it. Speak slowly. 2:40 is perf
 > because of the new law. One is disputed, because the wiki says the 3rd working day and the help centre says the
 > 5th, so Ann should ask Koen. One is fine. And here's a safe version she can send instead."
 
-**1:35, Detect tab.**
+**1:30, Handover tab (10 seconds, just scroll).**
+> "And for a consultant who takes over a portfolio: a day-one briefing. What changed, what's disputed, what only
+> lives in someone's head, and who to ask."
+
+**1:40, Detect tab.**
 > "This is the view for the people who own the documents. One legal change: five wrong statements in three
 > documents, each with a suggested rewrite and an owner. Here's the deadline conflict, with a ticket that proves it
 > already delayed overtime pay for 37 employees."

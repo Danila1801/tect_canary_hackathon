@@ -60,11 +60,13 @@ Sign in as:
    - "Bike allowance": *no trusted source*, so it's logged as a knowledge gap.
 3. **Verify** tab: click "Load an example draft", then "Check before sending". Canary finds 2 wrong claims and 1
    disputed claim, and gives you a safe version.
-4. **Detect** tab: the legal-change banner, then the issue cards with side-by-side quotes, suggested rewrites and
+4. **Handover** tab: the day-one briefing for someone taking over a portfolio. It shows what changed by law, what's
+   disputed, what only lives in chats and what's solid. "Copy as checklist" copies it.
+5. **Detect** tab: the legal-change banner, then the issue cards with side-by-side quotes, suggested rewrites and
    owners. As Ann, the Approve buttons are locked on other people's documents.
-5. **Trust** tab: click any document to see how its score is calculated.
-6. **Connect** tab: who knows what, and the live list of knowledge gaps.
-7. Sign out and sign in as **Marc**: now you can approve the fix to his playbook. As **Sofie** (admin) you can
+6. **Trust** tab: click any document to see how its score is calculated.
+7. **Connect** tab: who knows what, and the live list of knowledge gaps.
+8. Sign out and sign in as **Marc**: now you can approve the fix to his playbook. As **Sofie** (admin) you can
    approve anything and press "Re-scan sources" (takes about 30 seconds).
 
 ## The story in 30 seconds (everyone should be able to say this)

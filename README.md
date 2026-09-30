@@ -34,6 +34,9 @@ and who needs to fix them?**
 - **Verify**: paste the reply you're about to send to a client. Canary checks every claim in it: *supported*,
   *wrong* (a current source says otherwise), *disputed* (sources disagree, here's who to ask) or *no source*. Then it
   gives you a safe version to send instead.
+- **Handover**: a consultant who takes over a portfolio gets a day-one briefing per topic: what changed by law
+  (and which old guidance to drop), where sources disagree, what only lives in someone's head, and what's solid.
+  With who to ask for each. No extra AI call: it's built from facts already traced to their source.
 - **Capture**: when an expert has answered the same question in three different chats, Canary turns those
   answers into a draft article. The expert only has to approve it.
 - **Connect**: when documents aren't enough, Canary tells you who to talk to and sends them the question with its

@@ -30,7 +30,9 @@ import {
   Sparkles,
   Users,
   X,
+  Briefcase,
 } from "lucide-react";
+import { buildHandover, handoverMarkdown, type HandoverStatus } from "@/canary/handover";
 import type { Analysis, AskResult, Doc, Issue, IssueKind, Verdict, VerifyResult } from "@/canary/types";
 
 export type Role = "consultant" | "owner" | "admin";
@@ -53,7 +55,7 @@ export interface Gap {
   asked_by: string;
   at: string;
 }
-type Tab = "Ask" | "Verify" | "Detect" | "Trust" | "Connect";
+type Tab = "Ask" | "Verify" | "Handover" | "Detect" | "Trust" | "Connect";
 type Action = "approve" | "dismiss";
 type DocMeta = Omit<Doc, "body">;
 
@@ -403,7 +405,7 @@ function Workspace({ user, analysis, resolutions, gaps, onAsk, onVerify, onResol
 
       <nav aria-label="Main navigation" className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-[1440px] gap-1 overflow-x-auto px-5 md:px-9 xl:px-12">
-          {(["Ask", "Verify", "Detect", "Trust", "Connect"] as Tab[]).map((t) => (
+          {(["Ask", "Verify", "Handover", "Detect", "Trust", "Connect"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -412,6 +414,7 @@ function Workspace({ user, analysis, resolutions, gaps, onAsk, onVerify, onResol
             >
               {t === "Ask" && <Search size={16} />}
               {t === "Verify" && <ClipboardCheck size={16} />}
+              {t === "Handover" && <Briefcase size={16} />}
               {t === "Detect" && <Bell size={16} />}
               {t === "Trust" && <ShieldCheck size={16} />}
               {t === "Connect" && <Users size={16} />}
@@ -429,6 +432,7 @@ function Workspace({ user, analysis, resolutions, gaps, onAsk, onVerify, onResol
           <AskView question={question} setQuestion={setQuestion} ask={ask} answer={answer} askedQuestion={askedQuestion} loading={loading} docs={docs} claimCount={analysis.stats.grounded_claims} notify={notify} />
         )}
         {tab === "Verify" && <VerifyView onVerify={onVerify} docs={docs} notify={notify} />}
+        {tab === "Handover" && <HandoverView analysis={analysis} notify={notify} />}
         {tab === "Detect" && <DetectView issues={analysis.issues} resolved={resolved} filter={filter} setFilter={setFilter} docs={docs} claims={claims} security={analysis.security} user={user} resolve={resolve} />}
         {tab === "Trust" && <TrustView analysis={analysis} docs={docs} openDoc={openDoc} setOpenDoc={setOpenDoc} />}
         {tab === "Connect" && <ConnectView analysis={analysis} docs={docs} gaps={gaps} notify={notify} />}
@@ -851,6 +855,97 @@ function VerifyView({ onVerify, docs, notify }: { onVerify: (draft: string) => P
   );
 }
 
+const handoverCopy: Record<HandoverStatus, { title: string; blurb: string; badge: string; card: string }> = {
+  changed: { title: "Changed by law: drop the old habit", blurb: "Older guidance is now wrong. Here's what applies today.", badge: "bg-danger-soft text-danger-foreground", card: "border-danger-foreground/20" },
+  disputed: { title: "Sources disagree: ask before you answer", blurb: "Two documents say different things. The owner decides.", badge: "bg-conflict-soft text-conflict-foreground", card: "border-conflict/40" },
+  chat_only: { title: "Only in someone's head", blurb: "Answered in chats and mails, never written down officially.", badge: "bg-chat-soft text-navy", card: "border-chat/30" },
+  solid: { title: "Solid ground", blurb: "Current, owned and consistent. Safe to use.", badge: "bg-success-soft text-success-foreground", card: "border-border" },
+};
+
+function HandoverView({ analysis, notify }: { analysis: Analysis; notify: (v: string, bad?: boolean) => void }) {
+  const items = useMemo(() => buildHandover(analysis), [analysis]);
+  const statuses: HandoverStatus[] = ["changed", "disputed", "chat_only", "solid"];
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(handoverMarkdown(items));
+      notify("Briefing copied as a checklist.");
+    } catch {
+      notify("Could not copy. Select the text instead.", true);
+    }
+  }
+
+  return (
+    <>
+      <SectionHead eyebrow="03 / Handover" title="Taking over a portfolio? Start here." description="Everything a consultant needs on day one, sorted by how far you can trust it. Built from the same checks, with no extra AI call." />
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {statuses.map((s) => (
+            <IconBadge key={s} className={handoverCopy[s].badge}>
+              {items.filter((i) => i.status === s).length} · {handoverCopy[s].title.split(":")[0]}
+            </IconBadge>
+          ))}
+        </div>
+        <Button size="small" variant="outline" onClick={copy}>
+          <Copy size={13} /> Copy as checklist
+        </Button>
+      </div>
+      <div className="space-y-9">
+        {statuses.map((status) => {
+          const group = items.filter((i) => i.status === status);
+          if (group.length === 0) return null;
+          return (
+            <section key={status}>
+              <h2 className="text-lg font-semibold">{handoverCopy[status].title}</h2>
+              <p className="mb-4 text-sm text-muted-foreground">{handoverCopy[status].blurb}</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                {group.map((item) => (
+                  <article key={item.topic} className={`rounded-lg border bg-card p-5 shadow-sm ${handoverCopy[status].card}`}>
+                    <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-primary">{topicLabel(item.topic)}</div>
+                    <h3 className="text-sm font-semibold leading-6">{item.question}</h3>
+                    {item.rule && (
+                      <div className="mt-3 rounded-md border border-border bg-background p-3 text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-semibold text-foreground">What applies today</span>
+                          <IconBadge className={item.rule.trust >= 70 ? "bg-success-soft text-success-foreground" : "bg-warning-soft text-warning-foreground"}>Trust {item.rule.trust}</IconBadge>
+                        </div>
+                        <div className="mt-2 italic leading-5 text-foreground/80">&ldquo;{item.rule.quote}&rdquo;</div>
+                        <div className="mt-1 text-muted-foreground">
+                          <span className="font-mono">{item.rule.doc_id}</span> · {item.rule.title}
+                        </div>
+                      </div>
+                    )}
+                    {item.old_guidance.map((old) => (
+                      <div key={old.doc_id + old.quote} className="mt-2 text-xs text-danger-foreground">
+                        <span className="font-semibold">Old guidance, don&apos;t use: </span>
+                        <span className="line-through">&ldquo;{old.quote}&rdquo;</span> <span className="font-mono">({old.doc_id})</span>
+                      </div>
+                    ))}
+                    <p className="mt-3 text-xs leading-5 text-muted-foreground">{item.note}</p>
+                    {item.incidents.map((inc) => (
+                      <div key={inc.doc_id} className="mt-2 flex items-center gap-1.5 text-xs text-danger-foreground">
+                        <CircleAlert size={12} /> Already caused a ticket: <span className="font-mono">{inc.doc_id}</span>
+                      </div>
+                    ))}
+                    {item.ask && (
+                      <div className="mt-4 flex items-center gap-2 border-t border-border pt-3 text-xs">
+                        <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">{initials(item.ask.name)}</span>
+                        <span>
+                          Ask <span className="font-semibold">{item.ask.name}</span> <span className="text-muted-foreground">· {item.ask.team}</span>
+                        </span>
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 function DetectView({
   issues,
   resolved,
@@ -878,7 +973,7 @@ function DetectView({
   const lawDocs = new Set(lawIssues.map((i) => i.doc_ids[0])).size;
   return (
     <>
-      <SectionHead eyebrow="03 / Detect" title="The things that need a second look." description="Outdated rules, conflicting guidance and answers that only live in chats, brought into the open." />
+      <SectionHead eyebrow="04 / Detect" title="The things that need a second look." description="Outdated rules, conflicting guidance and answers that only live in chats, brought into the open." />
       {legal && lawIssues.length > 0 && (
         <div className="relative mb-7 overflow-hidden rounded-lg bg-navy p-6 text-primary-foreground sm:p-8">
           <div className="absolute right-0 top-0 h-full w-1/3 opacity-10 [background:repeating-linear-gradient(135deg,transparent,transparent_16px,currentColor_17px,currentColor_18px)]" />
@@ -1041,7 +1136,7 @@ function TrustView({ analysis, docs, openDoc, setOpenDoc }: { analysis: Analysis
   const ranked = [...analysis.trust].sort((a, b) => b.score - a.score);
   return (
     <>
-      <SectionHead eyebrow="04 / Trust" title="Know what your sources are worth." description="Every score is a formula, not a vibe. Click a source to see exactly where its points come from." />
+      <SectionHead eyebrow="05 / Trust" title="Know what your sources are worth." description="Every score is a formula, not a vibe. Click a source to see exactly where its points come from." />
       <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="hidden grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_110px_95px_160px] gap-4 border-b border-border bg-muted/50 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground lg:grid">
           <span>Source</span>
@@ -1112,7 +1207,7 @@ function ConnectView({ analysis, docs, gaps, notify }: { analysis: Analysis; doc
   const experts = [...analysis.experts].sort((a, b) => Number(gapTopics.has(b.topic)) - Number(gapTopics.has(a.topic)) || b.contributions - a.contributions);
   return (
     <>
-      <SectionHead eyebrow="05 / Connect" title="Find the person behind the answer." description="When the documents run out, the right expert shouldn't be hard to find." />
+      <SectionHead eyebrow="06 / Connect" title="Find the person behind the answer." description="When the documents run out, the right expert shouldn't be hard to find." />
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="grid auto-rows-max gap-4 md:grid-cols-2">
           {experts.map((expert, i) => (
