@@ -12,7 +12,7 @@
     "check": "npm run typecheck && npm run lint && npm test",
     "scan": "node --env-file=.env.local scripts/scan.ts",
     "eval": "node --env-file=.env.local scripts/eval.ts",
-    "setup": "node scripts/setup-env.ts"
+    "setup": "node scripts/setup-env.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.49.0",

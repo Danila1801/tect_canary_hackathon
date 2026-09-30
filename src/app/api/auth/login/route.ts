@@ -28,6 +28,13 @@ export async function POST(req: Request) {
     return json({ error: "Too many attempts, try again later" }, 429, { "Retry-After": String(retryAfter) });
   }
 
+  // A server with no passwords configured at all is a setup problem, not a wrong password. Saying so
+  // reveals nothing about any single account.
+  const configured = USERS.some((u) => (process.env[`CANARY_PASSWORD_${u.id.toUpperCase()}`] ?? "").length >= 12);
+  if (!configured) {
+    return json({ error: "Sign-in isn't set up on this laptop yet: run `npm run setup`, then restart `npm run dev`." }, 503);
+  }
+
   const user = checkPassword(userId, password);
   if (!user) {
     for (const k of keys) recordHit(k.key, WINDOW);

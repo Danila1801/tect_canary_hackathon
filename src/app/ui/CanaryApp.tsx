@@ -281,7 +281,9 @@ function SignIn({ personas, publicStats, onLogin }: CanaryAppProps) {
           <Button type="submit" disabled={busy} className="mt-6 h-11 w-full">
             {busy ? "Signing in…" : "Sign in"} <ArrowRight size={16} />
           </Button>
-          <p className="mt-5 text-center text-xs text-muted-foreground">Demo data is synthetic. Each profile has its own password.</p>
+          <p className="mt-5 text-center text-xs text-muted-foreground">
+            Demo data is synthetic. Each profile has its own password, set in <span className="font-mono">.env.local</span> on the laptop running the app.
+          </p>
         </form>
       </div>
       <div className="mx-auto w-full max-w-[1280px] border-t border-primary-foreground/10 px-6 py-5 text-xs text-primary-foreground/40 lg:px-12">CANARY / KNOWLEDGE THAT KNOWS WHEN IT&apos;S WRONG</div>

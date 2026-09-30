@@ -27,21 +27,31 @@ Two people editing the same file causes merge conflicts. If you need a change in
 
 ## Run the app on your laptop
 
-You need Node 24 or newer.
+**Important: passwords belong to the laptop that runs the app.** If you run the app yourself, Danil's passwords
+won't work on your laptop, and yours won't work on his.
+
+**Easiest way (everyone gets the same passwords):**
 
 ```
 git clone https://github.com/Danila1801/tect_canary_hackathon.git
 cd tect_canary_hackathon
 npm install
-npm run setup
-npm run dev
 ```
 
-`npm run setup` creates `.env.local` with a session secret and one password per person. It never overwrites an existing file. Add the AI key on the `LLM_API_KEY=` line (Danil sends it in a private message). **Never commit that file or paste it anywhere public.**
+1. Danil sends you his `.env.local` file **in a private message**. It holds the AI key and the passwords.
+2. Save it in the `tect_canary_hackathon` folder, named exactly `.env.local`. On Windows, check it isn't
+   `.env.local.txt`.
+3. Run `npm run dev` and open http://localhost:3000. Use the passwords from the `CANARY_PASSWORD_*` lines.
 
-The passwords are in `.env.local`, in the `CANARY_PASSWORD_ANN`, `CANARY_PASSWORD_MARC` and `CANARY_PASSWORD_SOFIE` lines. **Don't copy `.env.example` over `.env.local`:** that wipes the key and all the passwords.
+**Your own passwords instead:** run `npm run setup`, then `npm run dev`. That creates your own `.env.local` with new
+passwords (they're in the `CANARY_PASSWORD_*` lines). It never overwrites an existing file. You still need the AI
+key on the `LLM_API_KEY=` line to ask questions.
 
-Open http://localhost:3000.
+**Getting "Too many attempts"?** After 5 wrong passwords a profile is locked for 15 minutes. Stop `npm run dev`
+(Ctrl+C) and start it again to reset.
+
+**Never commit `.env.local` or paste it anywhere public.** And don't copy `.env.example` over it: that wipes the key
+and all the passwords.
 
 Sign in as:
 
