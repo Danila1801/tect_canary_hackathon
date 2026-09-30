@@ -45,7 +45,38 @@ All documents, people and clients in `data/corpus/` are **synthetic**, written f
 
 ## Results
 
-<!-- RESULTS -->
+`npm run eval` scores the scan and the Q&A against the ground truth in `data/expected.json`: 7 planted problems
+(3 documents outdated by law, 2 internal conflicts, 1 topic that lives only in chats, 1 prompt injection) and 5
+documents that must never be flagged (the Dutch page, the documents that agree, the legal alert itself).
+
+### Results, 2026-09-30
+
+3 full scans of 17 sources, `Qwen/Qwen3-235B-A22B-Instruct-2507` on Nebius, `temperature=0`, run concurrently.
+
+Scan, per run:
+
+| run | precision | recall | false flags | claims grounded in their source | sec |
+|---|---|---|---|---|---|
+| 1 | 100% | 100% | 0 | 40/40 | 19.5 |
+| 2 | 100% | 100% | 0 | 40/40 | 38.8 |
+| 3 | 100% | 100% | 0 | 41/41 | 38.5 |
+
+Q&A, 8 questions x 2 runs (verified, conflict, unverified, no source, blocked injection):
+
+| answers | right status | cited the required source | cited an outdated or quarantined source |
+|---|---|---|---|
+| 16 | 16/16 | 16/16 | 0/16 |
+
+Notes:
+
+- The first eval run had 88% precision. The numeric backstop compared "25%" (a cross-border rule) with "3 days"
+  (telework) and flagged a conflict that was not there. It now only compares numbers in the same unit. Recall was
+  100% before and after.
+- Without the numeric backstop, one earlier scan missed the 3rd-vs-5th working day conflict. The model finds
+  contradictions nondeterministically; the code check makes that one reproducible.
+- A scan alone is ~33 model calls and 20-35 s. Times above include three scans sharing the endpoint.
+- This is a small synthetic corpus built to contain known problems. The numbers show the pipeline finds what is
+  there and nothing else. They do not show accuracy on real SD Worx data.
 
 ## How it works
 
