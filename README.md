@@ -1,167 +1,157 @@
-<img src="public/logo.svg" alt="Canary" width="120">
+<img src="public/logo.svg" alt="Canary logo" width="120">
 
 # Canary
 
-Knowledge that knows when it's wrong.
+**Knowledge that knows when it's wrong.**
 
-Tectonic Hackathon 2026, SD Worx track: *"How might we turn fragmented organisational knowledge into a trusted
-shared resource?"*
+Built at the Tectonic Hackathon 2026 for the SD Worx challenge: *"How might we turn fragmented organisational
+knowledge into a trusted shared resource?"*
 
-Demo video: *link in the Builderbase submission* · Pitch: [`presentation/`](presentation/)
+Demo video: *link in the Builderbase submission* · Pitch material: [`presentation/`](presentation/) · Team page:
+[`TEAM.md`](TEAM.md)
 
-## The problem
+## The moment we fix
 
-SD Worx already has **Find** (an assistant over 100,000+ internal documents) and already watches **external** law
-changes (Legal Watch). The gap is between them. When the law changes, nobody knows which internal documents just
-became wrong. When two documents disagree, an assistant quietly picks one. And the best answers live in the inboxes
-of people like the one consultant who knows cross-border payroll.
+A client calls a payroll consultant: *"Can our recruiters still ask candidates what they earn?"*
 
-A payroll consultant with a client on the phone does not need ten search results. They need to know **which answer
-they can rely on, why, and who to call when the documents are not enough.**
+The consultant searches. The company's own recruitment playbook says: *always ask*. But since 7 June 2026 that's
+not allowed any more, because of the EU Pay Transparency Directive. The playbook was never updated. A normal AI
+assistant finds it and repeats the wrong answer, confidently.
+
+The information exists. What's missing is **knowing which answer you can trust, and why.**
+
+SD Worx already has a search assistant over its documents, and a tool that watches the law change (Legal Watch).
+Canary is the missing link between the two: **when the law changes, which of our own documents just became wrong,
+and who needs to fix them?**
 
 ## What Canary does
 
-Canary runs over every source (policies, FAQs, wiki pages, contract templates, mails, Teams threads, tickets) and:
+- **Detect**: finds statements that a legal change made wrong. It also finds documents that contradict each other,
+  documents with no owner, documents meant for another country, and knowledge that only lives in chats and emails.
+- **Trust**: every answer gets a clear label: *verified*, *unverified*, *sources disagree* or *no trusted source*.
+  It shows the exact sentences behind the answer and what it ignored, and why. Every document gets a trust score
+  you can read line by line.
+- **Capture**: when an expert has answered the same question in three different chats, Canary turns those
+  answers into a draft article. The expert only has to approve it.
+- **Connect**: when documents aren't enough, Canary tells you who to talk to and sends them the question with its
+  context. Questions nobody can answer are logged as knowledge gaps.
 
-| | |
-|---|---|
-| **Detect** | Splits every source into atomic claims and compares them. It finds statements made wrong by a legal update, internal contradictions, sources for another country, documents without an owner, and knowledge that exists only in chats. |
-| **Trust** | Every source gets a trust score from a visible formula (authority, review age, owner, conflicts, corroboration, legal changes). Every answer shows its status: *verified*, *unverified*, *sources disagree*, *no trusted source*. |
-| **Capture** | Turns an expert's scattered chat and mail answers into a draft article for them to validate. It also spots when the right answer already sits in someone's inbox while the official document says the opposite. |
-| **Connect** | When documents are not enough, it routes the question, with context, to the owner or the person who actually answers these questions. Unanswerable questions are logged as knowledge gaps. |
+## Does it work?
 
-### Demo scenario (synthetic data)
+We planted 7 known problems in 17 synthetic documents: 3 documents made wrong by the law, 2 conflicts, 1 topic that
+only lives in chats, and 1 poisoned message. We also marked 5 documents that must *never* be flagged. Then we ran
+the full scan 3 times (`npm run eval`).
 
-The EU Pay Transparency Directive's transposition deadline was 7 June 2026. Canary traces that one legal change
-through 17 internal sources and finds 5 statements in 3 documents that now give the wrong answer. That includes a
-2023 recruitment playbook that tells recruiters to ask candidates for their current salary, which is now prohibited.
-Each one goes to its owner with a suggested rewrite.
+| run | found (recall) | correct (precision) | false alarms | facts traced to an exact sentence |
+|---|---|---|---|---|
+| 1 | 7/7 | 100% | 0 | 40/40 |
+| 2 | 7/7 | 100% | 0 | 40/40 |
+| 3 | 7/7 | 100% | 0 | 41/41 |
 
-It also catches a payroll cut-off date that differs between the wiki (3rd working day) and the client help centre
-(5th). The help-centre article has no owner, and a support ticket shows the conflict already delayed overtime pay for 37
-employees. And it quarantines a Teams message that contains a hidden prompt injection.
+We also asked 8 questions twice each (16 answers):
 
-All documents, people and clients in `data/corpus/` are **synthetic**, written for this demo.
+| right status | cited the source it should | cited an outdated or poisoned source |
+|---|---|---|
+| 16/16 | 16/16 | 0/16 |
 
-## Results
+Honest notes:
 
-`npm run eval` scores the scan and the Q&A against the ground truth in `data/expected.json`: 7 planted problems
-(3 documents outdated by law, 2 internal conflicts, 1 topic that lives only in chats, 1 prompt injection) and 5
-documents that must never be flagged (the Dutch page, the documents that agree, the legal alert itself).
+- The very first eval run found a false conflict: it compared "25%" with "3 days" because both are numbers. We
+  fixed it so numbers are only compared in the same unit. After the fix: 0 false alarms.
+- AI models are not perfectly consistent. One early scan missed the "3rd vs 5th working day" conflict. A simple
+  code check now catches different numbers for the same rule every time.
+- This is a small synthetic dataset built to contain known problems. It shows the method works. It does not prove
+  accuracy on real company data.
 
-### Results, 2026-09-30
-
-3 full scans of 17 sources, `Qwen/Qwen3-235B-A22B-Instruct-2507` on Nebius, `temperature=0`, run concurrently.
-
-Scan, per run:
-
-| run | precision | recall | false flags | claims grounded in their source | sec |
-|---|---|---|---|---|---|
-| 1 | 100% | 100% | 0 | 40/40 | 19.5 |
-| 2 | 100% | 100% | 0 | 40/40 | 38.8 |
-| 3 | 100% | 100% | 0 | 41/41 | 38.5 |
-
-Q&A, 8 questions x 2 runs (verified, conflict, unverified, no source, blocked injection):
-
-| answers | right status | cited the required source | cited an outdated or quarantined source |
-|---|---|---|---|
-| 16 | 16/16 | 16/16 | 0/16 |
-
-Notes:
-
-- The first eval run had 88% precision. The numeric backstop compared "25%" (a cross-border rule) with "3 days"
-  (telework) and flagged a conflict that was not there. It now only compares numbers in the same unit. Recall was
-  100% before and after.
-- Without the numeric backstop, one earlier scan missed the 3rd-vs-5th working day conflict. The model finds
-  contradictions nondeterministically; the code check makes that one reproducible.
-- A scan alone is ~33 model calls and 20-35 s. Times above include three scans sharing the endpoint.
-- This is a small synthetic corpus built to contain known problems. The numbers show the pipeline finds what is
-  there and nothing else. They do not show accuracy on real SD Worx data.
+Setup: model `Qwen/Qwen3-235B-A22B-Instruct-2507` on Nebius Token Factory. One scan is about 33 model calls and
+20–35 seconds.
 
 ## How it works
 
 ```
-sources ──► security screen ──► claim extraction (LLM) ──► grounding check (code)
-                 │                                              │
-            quarantine                                  compare per topic (LLM + numeric check)
-                                                                │
-                                          deterministic rules: outdated-by-law, conflict, gap, scope
-                                                                │
-                                           trust scores, experts, suggested fixes ──► UI + Q&A
+documents → safety check → AI pulls out facts → code checks each fact against the source text
+                ↓                                           ↓
+          quarantine                          compare facts per topic (AI + number check)
+                                                            ↓
+                          fixed rules decide: outdated by law? conflict? other country? only in chats?
+                                                            ↓
+                              trust scores, experts and suggested fixes → app and Q&A
 ```
 
-Design rule: **the model finds, code decides.**
+Our one design rule: **the AI finds, the code decides.**
 
-- A claim only counts if its quote is found word for word in the source (`isGrounded`).
-- Whether a contradiction means "outdated by law" or "internal conflict" is decided by rules on dates, source type
-  and jurisdiction. The model does not decide it.
-- After the model answers, code re-checks every citation. Outdated, quarantined or ungrounded sources are removed,
-  and the status is downgraded if only informal sources remain.
-- Different numbers for the same topic in the same country are flagged even if the model misses them.
+1. A fact only counts if its quote can be found word for word in the document.
+2. Whether a disagreement means "outdated by law" or "internal conflict" is decided by clear rules: dates, document
+   type and country. The AI doesn't decide it.
+3. After the AI writes an answer, code checks every source it cited. Outdated, poisoned or made-up quotes are
+   removed. If only chats and emails support the answer, it's labelled *unverified*.
+4. When sources disagree, Canary never picks a winner. The owner of the document decides.
 
-## Security
+## How we kept it secure
 
-Aikido audit screenshots are in the submission. Measures in the code:
+The Aikido audit screenshots are in the submission. In plain words:
 
-- **Authentication**: per-user passwords from environment variables, constant-time comparison, HMAC-signed
-  `HttpOnly` + `SameSite=Strict` session cookies with expiry and a random session id. Sessions are registered
-  server-side, so logout really ends them and a copied cookie stops working. It fails closed without a strong
-  `SESSION_SECRET`.
-- **Authorization**: roles (consultant, owner, knowledge admin) are checked server-side. Only the owner of a document
-  or an admin can approve a fix. The owner is looked up from the issue on the server, so changing an id in the
-  request does not grant access (no IDOR). Live scans are admin-only and disabled unless explicitly enabled.
-- **CSRF**: `SameSite=Strict` plus an `Origin` check on every state-changing request.
-- **Abuse**: rate limits on login (per client and per account), questions and scans. Client IP headers are only
-  trusted behind a known proxy (`TRUST_PROXY`), so spoofing them cannot dodge a limit. Input length limits, and no
-  provider errors leak to the client. An owner's decision on an issue is final; only an admin can overturn it.
-- **Prompt injection**: sources are screened by deterministic rules before any model sees them. Two hits means
-  quarantine: the text never reaches a model and can never be cited. User questions are screened too.
-- **Headers**: strict CSP, `frame-ancestors 'none'`, HSTS, nosniff, no referrer, and no `X-Powered-By`.
-- **Secrets**: none in the repo. `.env.local` is git-ignored and `.env.example` documents every variable. The LLM
-  key is used server-side only.
-- **Dependencies**: only Next.js, React and Tailwind. No LLM SDK, just `fetch`.
+- **Signing in**: every person has their own password, and passwords are compared safely. Sessions are signed so
+  they can't be forged, and signing out really ends the session on the server.
+- **Permissions**: the server checks every request. Only the owner of a document (or an admin) can approve a fix
+  to it, and changing an ID in a request doesn't get you around that. Only admins can run a new scan.
+- **Attacks from other websites**: blocked by strict cookie settings and an origin check on every change.
+- **Abuse**: sign-in attempts, questions and scans are rate-limited. Inputs have length limits, and errors never
+  leak internal details.
+- **Poisoned documents**: a message with hidden instructions for the AI ("ignore previous instructions…") is
+  caught by fixed rules and quarantined *before* any AI reads it. It can never be cited. Questions are checked
+  the same way.
+- **Browser protection**: strict security headers (CSP, no framing, HSTS).
+- **No secrets in the repo.** `.env.example` lists what you need, with empty values. The AI key only lives on the
+  server.
+- **Few dependencies**: only Next.js, React and Tailwind. No AI SDK, just plain `fetch`.
 
 ## Run it
 
-Node 24+ (scripts and tests run TypeScript directly, no build step).
+You need Node 24 or newer.
 
 ```
 npm install
-cp .env.example .env.local   # LLM key, SESSION_SECRET and one password per persona
-npm run dev                  # http://localhost:3000
-npm run check                # typecheck, lint, 22 tests
-npm run scan                 # rebuild data/analysis.json from data/corpus/
-npm run eval                 # score scan and Q&A against data/expected.json (3 scans, 16 answers)
+cp .env.example .env.local   # add the AI key, a session secret and one password per person
+npm run dev                  # open http://localhost:3000
 ```
 
-`make dev`, `make test`, `make check`, `make scan` and `make eval` do the same on macOS and Linux.
+Useful commands:
 
-Sign in as **Ann Peeters** (payroll consultant), **Marc Dubois** (content owner) or **Sofie Claes**
-(knowledge admin, can re-scan).
+| command | what it does |
+|---|---|
+| `npm run check` | type check, lint and the 22 tests |
+| `npm run scan` | re-analyse all documents in `data/corpus/` |
+| `npm run eval` | score the scan and the Q&A against the known answers |
 
-Any OpenAI-compatible endpoint works. We used Nebius Token Factory with `Qwen/Qwen3-235B-A22B-Instruct-2507`. The
-committed `data/analysis.json` lets the app run without re-scanning.
+On macOS or Linux, `make dev`, `make check`, `make scan` and `make eval` do the same.
 
-## Layout
+Sign in as **Ann Peeters** (payroll consultant), **Marc Dubois** (content owner) or **Sofie Claes** (knowledge
+admin). Any OpenAI-compatible AI endpoint works. The app starts from the saved analysis in `data/analysis.json`,
+so it runs without a new scan.
+
+## What's in this repo
 
 ```
-data/corpus/        17 synthetic sources (policies, FAQs, wiki, templates, mails, Teams, tickets, a legal alert)
-data/expected.json  ground truth for the eval: planted problems, clean documents, Q&A cases
-data/analysis.json  committed scan output the app starts from
-src/canary/         engine: corpus, security, analyze, ask, auth, ratelimit, store
-src/app/            Next.js UI (canary-app.tsx) and API routes (api/*)
-scripts/            scan.ts, eval.ts
-tests/              node:test suites: grounding, security, auth, rate limits, analysis invariants
-presentation/       demo script, Q&A prep, submission text
+data/corpus/        17 made-up documents: policies, FAQs, wiki, contract template, emails, Teams chats, tickets, a legal alert
+data/expected.json  the known answers used to score Canary
+data/analysis.json  the saved scan the app starts from
+src/canary/         the engine: loading, safety check, analysis, Q&A, sign-in, rate limits
+src/app/            the web app (canary-app.tsx) and its API (api/*)
+scripts/            scan.ts and eval.ts
+tests/              22 automated tests
+presentation/       demo script, likely judge questions, submission text
+TEAM.md             who does what, and the checklist until we submit
 ```
 
-## What is unfinished
+## What's not done yet
 
-- Sources are a folder of synthetic markdown files. Connectors to SharePoint, Confluence, Teams, Outlook and Zendesk
-  are the obvious next step.
-- At this scale every claim fits in the prompt. At 100,000+ documents, claims would go into a vector index and be
-  compared per topic cluster. The rules layer stays the same.
-- Sessions, approvals, gaps and resolutions are kept in memory (single instance). They need a database or Redis.
-- "Send to owner" is simulated. In production it would be a Teams message or a ticket.
-- Canary does not give legal advice. The Legal Watch alert in the corpus summarises directive-level obligations.
-  National transposition details would come from Legal.
+- The documents are files in a folder. Connecting to SharePoint, Confluence, Teams, Outlook and Zendesk is the
+  next step.
+- With 17 documents, every fact fits in one prompt. With 100,000 documents, facts would go into a search index
+  and be compared per topic. The rules stay the same.
+- Sessions, approvals and gaps are kept in memory, so a restart clears them. A real version needs a database.
+- "Send with context" is simulated. In a real version it would be a Teams message or a ticket.
+- Canary doesn't give legal advice. The legal alert in the demo summarises the EU directive. Country-specific
+  details would come from the legal team.
+- All documents, people and clients in `data/corpus/` are made up for this demo.
