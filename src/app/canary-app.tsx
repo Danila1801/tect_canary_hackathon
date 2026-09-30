@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { topicLabel } from "@/lib/topics";
 import type { Analysis, AskResult, Claim, Issue, IssueKind } from "@/lib/types";
 
 type Role = "consultant" | "owner" | "admin";
@@ -468,7 +469,7 @@ function AskPanel({ analysis, onGap, flash }: { analysis: Analysis; onGap: () =>
                   <p className="text-xs text-zinc-600">{result.escalate.reason}</p>
                 </div>
                 <button
-                  onClick={() => flash(`Sent to ${result.escalate!.name} with the question, the sources and the conflict attached`)}
+                  onClick={() => flash(`Handed to ${result.escalate!.name} with the question and sources attached (demo: Teams message in production)`)}
                   className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white"
                 >
                   Send with context
@@ -535,7 +536,7 @@ function IssuesPanel({
     });
     if (res.ok && res.data.resolution) {
       onResolved(res.data.resolution);
-      flash(action === "approve" ? `Fix approved by ${me.name}. The source is updated and re-scored.` : "Issue dismissed");
+      flash(action === "approve" ? `Fix approved by ${me.name}. Canary re-checks the source on the next scan.` : `Issue dismissed by ${me.name}`);
     } else flash(res.data.error ?? `Refused (${res.status})`, true);
   }
 
@@ -650,10 +651,10 @@ function IssuesPanel({
                 ) : (
                   <>
                     <button onClick={() => resolve(issue, "approve")} className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white">
-                      {issue.kind === "undocumented" ? "Validate and publish" : "Approve fix"}
+                      {issue.kind === "undocumented" ? "Validate and publish" : issue.kind === "quarantined" ? "Confirm quarantine" : issue.kind === "conflict" ? "Resolve conflict" : "Approve fix"}
                     </button>
                     <button onClick={() => resolve(issue, "dismiss")} className="rounded-lg px-3 py-1.5 text-xs font-medium ring-1 ring-zinc-300">
-                      Dismiss
+                      {issue.kind === "quarantined" ? "Release source" : "Dismiss"}
                     </button>
                     {!canResolve && <span className="text-xs text-zinc-500">Only {issue.owner.name} or a knowledge admin can approve this.</span>}
                   </>
@@ -723,12 +724,20 @@ function ExpertsPanel({ analysis, gaps }: { analysis: Analysis; gaps: Gap[] }) {
   const byTopic = new Map<string, Analysis["experts"]>();
   for (const e of analysis.experts) byTopic.set(e.topic, [...(byTopic.get(e.topic) ?? []), e]);
   const undocumented = new Set(analysis.issues.filter((i) => i.kind === "undocumented").map((i) => i.topic));
+  const authority = new Map(analysis.docs.map((d) => [d.id, d.authority]));
+  const kindOf = (ids: string[]) =>
+    ids.some((id) => authority.get(id) === "official")
+      ? "wrote official docs"
+      : ids.some((id) => authority.get(id) === "team")
+        ? "wrote team wiki pages"
+        : "answers in chats and mails";
+  const topics = [...byTopic.entries()].sort((a, b) => Number(undocumented.has(b[0])) - Number(undocumented.has(a[0])));
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <section className="grid gap-3 md:grid-cols-2">
-        {[...byTopic.entries()].map(([topic, people]) => (
-          <div key={topic} className="rounded-2xl border border-zinc-200 bg-white p-4">
-            <p className="font-mono text-xs text-zinc-500">{topic}</p>
+        {topics.map(([topic, people]) => (
+          <div key={topic} className={`rounded-2xl border bg-white p-4 ${undocumented.has(topic) ? "border-sky-300" : "border-zinc-200"}`}>
+            <p className="text-sm font-medium">{topicLabel(topic)}</p>
             {undocumented.has(topic) && <p className="mt-1 text-xs font-medium text-sky-700">Only in chats: this knowledge leaves with the person</p>}
             <ul className="mt-2 space-y-2">
               {people.map((p) => (
@@ -739,7 +748,7 @@ function ExpertsPanel({ analysis, gaps }: { analysis: Analysis; gaps: Gap[] }) {
                   </span>
                   <span className="text-right text-xs text-zinc-500">
                     {p.contributions} source{p.contributions > 1 ? "s" : ""}
-                    <span className="block">{p.official ? "wrote official docs" : "answers in chats and mails"}</span>
+                    <span className="block">{kindOf(p.doc_ids)}</span>
                   </span>
                 </li>
               ))}

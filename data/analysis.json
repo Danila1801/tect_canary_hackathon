@@ -577,7 +577,7 @@
       "severity": "high",
       "topic": "pay.info_request_right",
       "title": "Employee self-service FAQ: can I find out what my colleagues earn? contradicts LW-2026-041",
-      "explanation": "FAQ-ESS-117#1 states employees have no right to request average pay, while LW-2026-041#4 grants the right to request average pay by sex for comparable workers. FAQ-ESS-117 was last reviewed on 2024-10-01, before the rule took effect on 2026-06-07.",
+      "explanation": "FAQ-ESS-117 states employees have no right to request average pay, while LW-2026-041 grants the right to request average pay by sex for comparable workers. FAQ-ESS-117 was last reviewed on 2024-10-01, before the rule took effect on 2026-06-07.",
       "claim_ids": [
         "FAQ-ESS-117#1",
         "LW-2026-041#4"
@@ -591,9 +591,7 @@
         "name": "Lotte Janssens",
         "team": "Customer Service BE"
       },
-      "captured_in": [
-        "MAIL-2026-07-14"
-      ],
+      "captured_in": [],
       "suggested_fix": "Employees have the right to request their individual pay level and the average pay levels by sex for comparable workers."
     },
     {
@@ -652,7 +650,7 @@
       "severity": "high",
       "topic": "recruitment.pay_history",
       "title": "Recruitment playbook for client HR teams contradicts LW-2026-041",
-      "explanation": "LW-2026-041#1 prohibits asking about salary, while PB-REC-2023#1 allows it during the first interview. PB-REC-2023 was last reviewed on 2023-03-14, before the rule took effect on 2026-06-07.",
+      "explanation": "LW-2026-041 prohibits asking about salary, while PB-REC-2023 allows it during the first interview. PB-REC-2023 was last reviewed on 2023-03-14, before the rule took effect on 2026-06-07.",
       "claim_ids": [
         "PB-REC-2023#1",
         "LW-2026-041#1"

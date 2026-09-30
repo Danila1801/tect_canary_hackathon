@@ -94,7 +94,9 @@ Return JSON: {"relations":[{"a":"<claim id>","b":"<claim id>","relation":"contra
   const out = await chatJSON<{ relations?: Relation[] }>(system, user);
   const ids = new Set(claims.map((c) => c.id));
   const byId = new Map(claims.map((c) => [c.id, c]));
-  return (out.relations ?? []).filter(
+  return (out.relations ?? [])
+    .map((r) => ({ ...r, explanation: String(r?.explanation ?? "").replace(/([A-Z0-9-]+)#\d+/g, "$1").slice(0, 300) }))
+    .filter(
     (r) =>
       r &&
       ids.has(r.a) &&
@@ -175,7 +177,11 @@ export async function scan(allDocs: Doc[]): Promise<Analysis> {
   //    what they mean, so the verdict is reproducible.
   const issues = new Map<string, Issue>();
   const agreeCount = new Map<string, Set<string>>();
-  const addAgree = (a: string, b: string) => agreeCount.set(a, new Set([...(agreeCount.get(a) ?? []), b]));
+  const agreeByTopic = new Map<string, Set<string>>();
+  const addAgree = (a: string, b: string, topic: string) => {
+    agreeCount.set(a, new Set([...(agreeCount.get(a) ?? []), b]));
+    agreeByTopic.set(`${a}|${topic}`, new Set([...(agreeByTopic.get(`${a}|${topic}`) ?? []), b]));
+  };
 
   for (const r of relations) {
     const ca = claimById.get(r.a)!;
@@ -185,8 +191,8 @@ export async function scan(allDocs: Doc[]): Promise<Analysis> {
     // Different jurisdiction: neither a conflict nor a confirmation.
     if (da.country !== db.country) continue;
     if (r.relation === "agrees") {
-      addAgree(da.id, db.id);
-      addAgree(db.id, da.id);
+      addAgree(da.id, db.id, ca.topic);
+      addAgree(db.id, da.id, ca.topic);
       continue;
     }
     // Tickets are evidence of harm, not knowledge sources. Two chats disagreeing is noise, not a
@@ -262,7 +268,9 @@ export async function scan(allDocs: Doc[]): Promise<Analysis> {
     // Informal sources that already agree with the law: the right answer exists, but in an inbox.
     if (issue.kind === "outdated_by_law") {
       const legalId = issue.doc_ids[1];
-      issue.captured_in = [...(agreeCount.get(legalId) ?? [])].filter((id) => docs.get(id)!.authority === "informal");
+      issue.captured_in = [...(agreeByTopic.get(`${legalId}|${issue.topic}`) ?? [])].filter(
+        (id) => docs.get(id)!.authority === "informal",
+      );
     }
   }
 
