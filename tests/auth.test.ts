@@ -62,3 +62,37 @@ test("issue owners map to account ids, not display names from the client", () =>
   assert.equal(auth.userIdForOwner("Marc Dubois"), "marc");
   assert.equal(auth.userIdForOwner("Lotte Janssens"), null);
 });
+
+function post(body: string, headers: Record<string, string> = {}): Request {
+  return new Request("http://localhost:3000/api/ask", { method: "POST", body, headers: { "content-type": "application/json", ...headers } });
+}
+
+test("readJson accepts a small JSON object", async () => {
+  const body = await auth.readJson(post(JSON.stringify({ question: "hello" })));
+  assert.ok(!(body instanceof Response));
+  assert.equal(body.question, "hello");
+});
+
+test("readJson refuses oversized bodies before buffering them", async () => {
+  const big = await auth.readJson(post(JSON.stringify({ question: "x".repeat(50_000) })), 4_096);
+  assert.ok(big instanceof Response && big.status === 413);
+  // A lying Content-Length is refused up front.
+  const declared = await auth.readJson(post("{}", { "content-length": "999999" }), 4_096);
+  assert.ok(declared instanceof Response && declared.status === 413);
+});
+
+test("readJson refuses invalid JSON and non-objects", async () => {
+  for (const raw of ["not json", "[1,2]", "null", "42"]) {
+    const r = await auth.readJson(post(raw));
+    assert.ok(r instanceof Response && r.status === 400, raw);
+  }
+});
+
+test("repeated sign-ins keep at most 10 live sessions per account", () => {
+  const marc = auth.checkPassword("marc", "marc-test-password-123")!;
+  const cookies = Array.from({ length: 12 }, () => cookieOf(auth.sessionCookie(marc)));
+  assert.equal(auth.getUser(requestWith(cookies[0])), null);
+  assert.equal(auth.getUser(requestWith(cookies[1])), null);
+  assert.equal(auth.getUser(requestWith(cookies[2]))?.id, "marc");
+  assert.equal(auth.getUser(requestWith(cookies[11]))?.id, "marc");
+});

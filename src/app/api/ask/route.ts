@@ -1,5 +1,5 @@
 import { ask } from "@/canary/ask";
-import { json, requireUser } from "@/canary/auth";
+import { json, readJson, requireUser } from "@/canary/auth";
 import { clientKey, rateLimit } from "@/canary/ratelimit";
 import { getAnalysis, getDocs, logGap } from "@/canary/store";
 
@@ -14,12 +14,8 @@ export async function POST(req: Request) {
     return json({ error: "Too many questions, slow down" }, 429, { "Retry-After": String(Math.max(byUser.retryAfter, byClient.retryAfter)) });
   }
 
-  let body: { question?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "Invalid JSON" }, 400);
-  }
+  const body = await readJson(req, 4_096);
+  if (body instanceof Response) return body;
   const question = typeof body.question === "string" ? body.question.replace(/[\u0000-\u001F\u007F]/g, " ").trim() : "";
   if (question.length < 5 || question.length > 400) {
     return json({ error: "Question must be between 5 and 400 characters" }, 400);

@@ -1,4 +1,4 @@
-import { json, requireUser } from "@/canary/auth";
+import { json, readJson, requireUser } from "@/canary/auth";
 import { clientKey, rateLimit } from "@/canary/ratelimit";
 import { getAnalysis, getDocs } from "@/canary/store";
 import { verify } from "@/canary/verify";
@@ -13,12 +13,9 @@ export async function POST(req: Request) {
     return json({ error: "Too many checks, slow down" }, 429, { "Retry-After": String(Math.max(byUser.retryAfter, byClient.retryAfter)) });
   }
 
-  let body: { draft?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "Invalid JSON" }, 400);
-  }
+  // 2000 characters can be up to ~8 KB of UTF-8, JSON-escaped a bit more.
+  const body = await readJson(req, 16_384);
+  if (body instanceof Response) return body;
   // Keep line breaks, drop other control characters.
   const draft = typeof body.draft === "string" ? body.draft.replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, " ").trim() : "";
   if (draft.length < 20 || draft.length > 2000) {

@@ -27,9 +27,12 @@ export function getAnalysis(): Analysis {
   return current;
 }
 
+// A re-scan must not wipe owners' decisions: keep every resolution whose issue still exists, so an
+// approved or dismissed issue does not silently reopen (and cannot be re-decided by its owner).
 export function setAnalysis(a: Analysis): void {
   current = a;
-  resolutions.clear();
+  const live = new Set(a.issues.map((i) => i.id));
+  for (const id of resolutions.keys()) if (!live.has(id)) resolutions.delete(id);
 }
 
 export function getDocs(): Doc[] {

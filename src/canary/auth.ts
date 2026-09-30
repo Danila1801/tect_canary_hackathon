@@ -18,6 +18,8 @@ export const USERS: User[] = [
 
 const COOKIE = "canary_session";
 const TTL_SECONDS = 8 * 3600;
+// Each sign-in adds a registry entry; cap them per account so repeated logins cannot grow memory.
+const MAX_SESSIONS_PER_USER = 10;
 
 // Server-side session registry: a signed cookie is only valid while its id is listed here, so
 // logging out really ends the session (a stolen cookie stops working too).
@@ -61,6 +63,9 @@ export function sessionCookie(user: User): string {
   pruneSessions();
   const sid = randomBytes(18).toString("base64url");
   const exp = Math.floor(Date.now() / 1000) + TTL_SECONDS;
+  const mine = [...activeSessions].filter(([, s]) => s.userId === user.id);
+  // Oldest first (Map keeps insertion order): end the oldest sessions of this account.
+  for (const [id] of mine.slice(0, Math.max(0, mine.length - MAX_SESSIONS_PER_USER + 1))) activeSessions.delete(id);
   activeSessions.set(sid, { userId: user.id, exp });
   const payload = Buffer.from(JSON.stringify({ sid, sub: user.id, exp })).toString("base64url");
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
@@ -120,6 +125,34 @@ export function json(body: unknown, status = 200, headers: Record<string, string
     status,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...headers },
   });
+}
+
+// Reads a JSON body with a size cap. req.json() would buffer any size, so a huge POST (even to the
+// public login route) could exhaust memory.
+export async function readJson(req: Request, maxBytes = 16_384): Promise<Record<string, unknown> | Response> {
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (declared > maxBytes) return json({ error: "Request body too large" }, 413);
+  if (!req.body) return json({ error: "Invalid JSON" }, 400);
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > maxBytes) {
+      await reader.cancel();
+      return json({ error: "Request body too large" }, 413);
+    }
+    chunks.push(value);
+  }
+  try {
+    const parsed: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return json({ error: "Invalid JSON" }, 400);
+    return parsed as Record<string, unknown>;
+  } catch {
+    return json({ error: "Invalid JSON" }, 400);
+  }
 }
 
 export function requireUser(req: Request, opts: { roles?: Role[]; mutation?: boolean } = {}): User | Response {

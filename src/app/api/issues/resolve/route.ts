@@ -1,16 +1,12 @@
-import { json, requireUser, userIdForOwner } from "@/canary/auth";
+import { json, readJson, requireUser, userIdForOwner } from "@/canary/auth";
 import { getAnalysis, getResolutions, resolveIssue } from "@/canary/store";
 
 export async function POST(req: Request) {
   const user = requireUser(req, { mutation: true });
   if (user instanceof Response) return user;
 
-  let body: { issue_id?: unknown; action?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "Invalid JSON" }, 400);
-  }
+  const body = await readJson(req, 2_048);
+  if (body instanceof Response) return body;
   const issueId = typeof body.issue_id === "string" ? body.issue_id.slice(0, 200) : "";
   const action = body.action === "approve" ? "approved" : body.action === "dismiss" ? "dismissed" : null;
   if (!issueId || !action) return json({ error: "issue_id and action (approve | dismiss) are required" }, 400);
