@@ -1,9 +1,14 @@
 // Minimal OpenAI-compatible client (Nebius Token Factory by default). No SDK: fewer dependencies,
 // smaller attack surface. Server-side only: the key never reaches the browser.
 let calls = 0;
+const usage = { prompt_tokens: 0, completion_tokens: 0 };
 
 export function llmCallCount(): number {
   return calls;
+}
+
+export function llmUsage(): { prompt_tokens: number; completion_tokens: number } {
+  return { ...usage };
 }
 
 export function modelName(): string {
@@ -48,6 +53,8 @@ export async function chatJSON<T>(
       });
       if (!res.ok) throw new Error(`LLM HTTP ${res.status}`);
       const data = await res.json();
+      usage.prompt_tokens += Number(data?.usage?.prompt_tokens ?? 0);
+      usage.completion_tokens += Number(data?.usage?.completion_tokens ?? 0);
       const content: string = data?.choices?.[0]?.message?.content ?? "";
       return JSON.parse(extractJson(content)) as T;
     } catch (err) {
