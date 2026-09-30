@@ -62,13 +62,16 @@ Design rule: **the model finds, code decides.**
 Aikido audit screenshots are in the submission. Measures in the code:
 
 - **Authentication**: per-user passwords from environment variables, constant-time comparison, HMAC-signed
-  `HttpOnly` + `SameSite=Strict` session cookies with expiry. It fails closed without a strong `SESSION_SECRET`.
+  `HttpOnly` + `SameSite=Strict` session cookies with expiry and a random session id. Sessions are registered
+  server-side, so logout really ends them and a copied cookie stops working. It fails closed without a strong
+  `SESSION_SECRET`.
 - **Authorization**: roles (consultant, owner, knowledge admin) are checked server-side. Only the owner of a document
   or an admin can approve a fix. The owner is looked up from the issue on the server, so changing an id in the
   request does not grant access (no IDOR). Live scans are admin-only and disabled unless explicitly enabled.
 - **CSRF**: `SameSite=Strict` plus an `Origin` check on every state-changing request.
-- **Abuse**: rate limits on login (per client and per account), questions and scans. Input length limits, and no
-  provider errors leak to the client.
+- **Abuse**: rate limits on login (per client and per account), questions and scans. Client IP headers are only
+  trusted behind a known proxy (`TRUST_PROXY`), so spoofing them cannot dodge a limit. Input length limits, and no
+  provider errors leak to the client. An owner's decision on an issue is final; only an admin can overturn it.
 - **Prompt injection**: sources are screened by deterministic rules before any model sees them. Two hits means
   quarantine: the text never reaches a model and can never be cited. User questions are screened too.
 - **Headers**: strict CSP, `frame-ancestors 'none'`, HSTS, nosniff, no referrer, and no `X-Powered-By`.
@@ -101,7 +104,7 @@ re-scanning.
   are the obvious next step.
 - At this scale every claim fits in the prompt. At 100,000+ documents, claims would go into a vector index and be
   compared per topic cluster. The rules layer stays the same.
-- Approvals, gaps and resolutions are kept in memory. They need a database.
+- Sessions, approvals, gaps and resolutions are kept in memory (single instance). They need a database or Redis.
 - "Send to owner" is simulated. In production it would be a Teams message or a ticket.
 - Canary does not give legal advice. The Legal Watch alert in the corpus summarises directive-level obligations.
   National transposition details would come from Legal.

@@ -1,5 +1,5 @@
-import { json, requireUser } from "@/lib/auth";
-import { getAnalysis, resolveIssue } from "@/lib/store";
+import { json, requireUser, userIdForOwner } from "@/lib/auth";
+import { getAnalysis, getResolutions, resolveIssue } from "@/lib/store";
 
 export async function POST(req: Request) {
   const user = requireUser(req, { mutation: true });
@@ -19,9 +19,13 @@ export async function POST(req: Request) {
   // so changing the issue id in the request does not let anyone act on someone else's content.
   const issue = getAnalysis().issues.find((i) => i.id === issueId);
   if (!issue) return json({ error: "Unknown issue" }, 404);
-  const isOwner = issue.owner.name === user.name;
+  const isOwner = userIdForOwner(issue.owner.name) === user.id;
   if (!isOwner && user.role !== "admin") {
     return json({ error: `Only ${issue.owner.name} (owner) or a knowledge admin can resolve this issue` }, 403);
+  }
+  // A decision is final for owners; only an admin can overturn it.
+  if (getResolutions().some((r) => r.issue_id === issue.id) && user.role !== "admin") {
+    return json({ error: "This issue was already resolved. Ask a knowledge admin to reopen it." }, 409);
   }
 
   const resolution = { issue_id: issue.id, action, by: user.name, at: new Date().toISOString() } as const;

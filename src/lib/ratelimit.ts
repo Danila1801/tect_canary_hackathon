@@ -18,6 +18,8 @@ export function rateLimit(key: string, limit: number, windowMs: number): { ok: b
 }
 
 export function clientKey(req: Request): string {
-  // x-real-ip is set by the hosting proxy; the first x-forwarded-for hop is client-controlled.
-  return req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",").pop()?.trim() ?? "local";
+  // Client IP headers can be forged unless a trusted proxy (e.g. Vercel) overwrites them. Without
+  // TRUST_PROXY=true every request shares one bucket, so spoofing a header cannot dodge a limit.
+  if (process.env.TRUST_PROXY !== "true") return "direct";
+  return req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",").pop()?.trim() ?? "unknown";
 }
