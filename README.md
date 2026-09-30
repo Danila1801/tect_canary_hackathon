@@ -1,36 +1,107 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Canary: knowledge that knows when it's wrong
 
-## Getting Started
+Tectonic Hackathon 2026, SD Worx track: *"How might we turn fragmented organisational knowledge into a trusted shared resource?"*
 
-First, run the development server:
+## The problem
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+SD Worx already has **Find** (an assistant over 100,000+ internal documents) and already watches **external** law
+changes (Legal Watch). The gap is between them. When the law changes, nobody knows which internal documents just
+became wrong. When two documents disagree, an assistant quietly picks one. And the best answers live in the inboxes
+of people like the one consultant who knows cross-border payroll.
+
+A payroll consultant with a client on the phone does not need ten search results. They need to know **which answer
+they can rely on, why, and who to call when the documents are not enough.**
+
+## What Canary does
+
+Canary runs over every source (policies, FAQs, wiki pages, contract templates, mails, Teams threads, tickets) and:
+
+| | |
+|---|---|
+| **Detect** | Splits every source into atomic claims and compares them. It finds statements made wrong by a legal update, internal contradictions, sources for another country, documents without an owner, and knowledge that exists only in chats. |
+| **Trust** | Every source gets a trust score from a visible formula (authority, review age, owner, conflicts, corroboration, legal changes). Every answer shows its status: *verified*, *unverified*, *sources disagree*, *no trusted source*. |
+| **Capture** | Turns an expert's scattered chat and mail answers into a draft article for them to validate. It also spots when the right answer already sits in someone's inbox while the official document says the opposite. |
+| **Connect** | When documents are not enough, it routes the question, with context, to the owner or the person who actually answers these questions. Unanswerable questions are logged as knowledge gaps. |
+
+### Demo scenario (synthetic data)
+
+The EU Pay Transparency Directive's transposition deadline was 7 June 2026. Canary traces that one legal change
+through 17 internal sources and finds 5 statements in 3 documents that now give the wrong answer. That includes a
+2023 recruitment playbook that tells recruiters to ask candidates for their current salary, which is now prohibited.
+Each one goes to its owner with a suggested rewrite.
+
+It also catches a payroll cut-off date that differs between the wiki (3rd working day) and the client help centre
+(5th). The help-centre article has no owner, and a support ticket shows the conflict already delayed overtime pay for 37
+employees. And it quarantines a Teams message that contains a hidden prompt injection.
+
+All documents, people and clients in `data/corpus/` are **synthetic**, written for this demo.
+
+## How it works
+
+```
+sources ──► security screen ──► claim extraction (LLM) ──► grounding check (code)
+                 │                                              │
+            quarantine                                  compare per topic (LLM + numeric check)
+                                                                │
+                                          deterministic rules: outdated-by-law, conflict, gap, scope
+                                                                │
+                                           trust scores, experts, suggested fixes ──► UI + Q&A
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Design rule: **the model finds, code decides.**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- A claim only counts if its quote is found word for word in the source (`isGrounded`).
+- Whether a contradiction means "outdated by law" or "internal conflict" is decided by rules on dates, source type
+  and jurisdiction. The model does not decide it.
+- After the model answers, code re-checks every citation. Outdated, quarantined or ungrounded sources are removed,
+  and the status is downgraded if only informal sources remain.
+- Different numbers for the same topic in the same country are flagged even if the model misses them.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Security
 
-## Learn More
+Aikido audit screenshots are in the submission. Measures in the code:
 
-To learn more about Next.js, take a look at the following resources:
+- **Authentication**: per-user passwords from environment variables, constant-time comparison, HMAC-signed
+  `HttpOnly` + `SameSite=Strict` session cookies with expiry. It fails closed without a strong `SESSION_SECRET`.
+- **Authorization**: roles (consultant, owner, knowledge admin) are checked server-side. Only the owner of a document
+  or an admin can approve a fix. The owner is looked up from the issue on the server, so changing an id in the
+  request does not grant access (no IDOR). Live scans are admin-only and disabled unless explicitly enabled.
+- **CSRF**: `SameSite=Strict` plus an `Origin` check on every state-changing request.
+- **Abuse**: rate limits on login (per client and per account), questions and scans. Input length limits, and no
+  provider errors leak to the client.
+- **Prompt injection**: sources are screened by deterministic rules before any model sees them. Two hits means
+  quarantine: the text never reaches a model and can never be cited. User questions are screened too.
+- **Headers**: strict CSP, `frame-ancestors 'none'`, HSTS, nosniff, no referrer, and no `X-Powered-By`.
+- **Secrets**: none in the repo. `.env.local` is git-ignored and `.env.example` documents every variable. The LLM
+  key is used server-side only.
+- **Dependencies**: only Next.js, React and Tailwind. No LLM SDK, just `fetch`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Run it
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+cp .env.example .env.local   # fill in LLM key, SESSION_SECRET and three passwords
+npm run dev                  # http://localhost:3000
+```
 
-## Deploy on Vercel
+Sign in as **Ann Peeters** (payroll consultant), **Marc Dubois** (content owner) or **Sofie Claes**
+(knowledge admin, can re-scan). Re-run the analysis offline with:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+node --env-file=.env.local scripts/scan.ts
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Any OpenAI-compatible endpoint works. We used Nebius Token Factory with `Qwen/Qwen3-235B-A22B-Instruct-2507`. A full
+scan of 17 sources takes ~30 model calls and ~25 s. The committed `data/analysis.json` lets the app run without
+re-scanning.
+
+## What is unfinished
+
+- Sources are a folder of synthetic markdown files. Connectors to SharePoint, Confluence, Teams, Outlook and Zendesk
+  are the obvious next step.
+- At this scale every claim fits in the prompt. At 100,000+ documents, claims would go into a vector index and be
+  compared per topic cluster. The rules layer stays the same.
+- Approvals, gaps and resolutions are kept in memory. They need a database.
+- "Send to owner" is simulated. In production it would be a Teams message or a ticket.
+- Canary does not give legal advice. The Legal Watch alert in the corpus summarises directive-level obligations.
+  National transposition details would come from Legal.

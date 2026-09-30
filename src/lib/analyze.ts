@@ -152,6 +152,25 @@ export async function scan(allDocs: Doc[]): Promise<Analysis> {
   const comparable = [...byTopic.entries()].filter(([, cs]) => new Set(cs.map((c) => c.doc_id)).size >= 2);
   const relations = (await mapLimit(comparable, 8, ([t, cs]) => compareTopic(t, cs, docs))).flat();
 
+  // Deterministic backstop: two sources giving different numbers for the same topic is a conflict,
+  // whether or not the model noticed it.
+  const numbers = (v: string) => (v.match(/\d+(?:[.,]\d+)?/g) ?? []).sort().join("|");
+  const related = new Set(relations.flatMap((r) => [`${r.a}>${r.b}`, `${r.b}>${r.a}`]));
+  for (const [, cs] of comparable) {
+    for (let i = 0; i < cs.length; i++) {
+      for (let j = i + 1; j < cs.length; j++) {
+        const [a, b] = [cs[i], cs[j]];
+        const [da, db] = [docs.get(a.doc_id)!, docs.get(b.doc_id)!];
+        if (a.doc_id === b.doc_id || da.country !== db.country || related.has(`${a.id}>${b.id}`)) continue;
+        const [na, nb] = [numbers(a.value), numbers(b.value)];
+        if (na && nb && na !== nb) {
+          relations.push({ a: a.id, b: b.id, relation: "contradicts", explanation: `Different values: "${a.value}" vs "${b.value}".` });
+          related.add(`${a.id}>${b.id}`);
+        }
+      }
+    }
+  }
+
   // 4. Deterministic rules turn relations into issues. The model finds disagreements; code decides
   //    what they mean, so the verdict is reproducible.
   const issues = new Map<string, Issue>();
@@ -170,8 +189,10 @@ export async function scan(allDocs: Doc[]): Promise<Analysis> {
       addAgree(db.id, da.id);
       continue;
     }
-    // Tickets are evidence of harm, not knowledge sources.
+    // Tickets are evidence of harm, not knowledge sources. Two chats disagreeing is noise, not a
+    // documentation problem: that case is covered by the undocumented-expertise rule.
     if (da.type === "ticket" || db.type === "ticket") continue;
+    if (da.authority === "informal" && db.authority === "informal") continue;
 
     const legal = da.type === "legal-update" ? da : db.type === "legal-update" ? db : null;
     if (legal && da.type !== db.type) {
@@ -374,7 +395,11 @@ export async function scan(allDocs: Doc[]): Promise<Analysis> {
   return {
     generated_at: new Date().toISOString(),
     model: modelName(),
-    docs: allDocs.map(({ body: _body, ...meta }) => meta),
+    docs: allDocs.map((d) => {
+      const { body, ...meta } = d;
+      void body;
+      return meta;
+    }),
     claims,
     issues: issueList,
     trust,

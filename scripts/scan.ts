@@ -8,6 +8,8 @@ const docs = loadCorpus();
 console.log(`Scanning ${docs.length} documents...`);
 const analysis = await scan(docs);
 writeFileSync(join(process.cwd(), "data", "analysis.json"), JSON.stringify(analysis, null, 2));
+// Bundled at build time, so the app never reads the filesystem at runtime.
+writeFileSync(join(process.cwd(), "data", "corpus.json"), JSON.stringify(docs, null, 2));
 console.log(JSON.stringify(analysis.stats, null, 2));
 console.log(`Health ${analysis.health}/100`);
 for (const i of analysis.issues) console.log(`- [${i.kind}] ${i.title} -> ${i.owner.name}`);

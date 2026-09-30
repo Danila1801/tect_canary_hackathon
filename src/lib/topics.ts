@@ -10,6 +10,7 @@ export const TOPICS: Record<string, string> = {
   "payroll.variable_input_cutoff": "Deadline for submitting monthly variable payroll input",
   "internal.home_office_allowance": "Amount and conditions of the internal staff home-office allowance",
   "internal.telework_days": "How many days internal staff may work from home",
+  "internal.other_benefits": "Other allowances and benefits for internal staff (bike, car, meal, phone...)",
   "crossborder.social_security": "Which social security applies to cross-border workers, A1, 25% threshold",
   "crossborder.wage_tax": "How wage tax is handled for cross-border workers",
   "onboarding.dimona": "Timing of the Dimona IN declaration",
