@@ -18,6 +18,8 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // No dev badge in the demo recording; build and runtime errors still show.
+  devIndicators: false,
   async headers() {
     return [
       {
