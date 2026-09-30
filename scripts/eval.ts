@@ -1,20 +1,23 @@
 // Scores the scan and the Q&A against the planted ground truth in data/expected.json.
-// node --env-file=.env.local scripts/eval.ts [scanRuns=3] [askRuns=2]
+// node --env-file=.env.local scripts/eval.ts [scanRuns=3] [askRuns=2] [verifyRuns=2]
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { scan } from "../src/canary/analyze.ts";
 import { ask } from "../src/canary/ask.ts";
 import { loadCorpus } from "../src/canary/corpus.ts";
-import type { Analysis, Issue } from "../src/canary/types.ts";
+import { verify } from "../src/canary/verify.ts";
+import type { Analysis, Issue, Verdict } from "../src/canary/types.ts";
 
 interface Expected {
   findings: string[];
   never_flagged: string[];
   questions: { question: string; status: string; must_cite: string[] }[];
+  verify: { name: string; draft: string; statements: { keywords: string[]; verdict: Verdict }[] }[];
 }
 
 const scanRuns = Number(process.argv[2] ?? 3);
 const askRuns = Number(process.argv[3] ?? 2);
+const verifyRuns = Number(process.argv[4] ?? 2);
 const expected = JSON.parse(readFileSync(join("data", "expected.json"), "utf8")) as Expected;
 const docs = loadCorpus();
 
@@ -68,6 +71,32 @@ const askResults = await Promise.all(
   ),
 );
 
+// Each expected statement is matched to a checked statement by keywords (the model picks its own sentence
+// boundaries). A statement the model skipped counts as a wrong verdict.
+console.log(`Verify: ${expected.verify.length} drafts x ${verifyRuns} runs`);
+const verifyResults = (
+  await Promise.all(
+    expected.verify.flatMap((d) =>
+      Array.from({ length: verifyRuns }, async () => {
+        const r = await verify(d.draft, reference, docs);
+        return d.statements.map((e) => {
+          const match = r.statements.find((s) => e.keywords.every((k) => s.text.toLowerCase().includes(k.toLowerCase())));
+          const cited = match?.citations.map((c) => c.doc_id) ?? [];
+          return {
+            draft: d.name,
+            keywords: e.keywords,
+            expected: e.verdict,
+            got: match?.verdict ?? "missing",
+            verdict_ok: match?.verdict === e.verdict,
+            cited,
+            cited_bad_source: cited.some((id) => outdatedOrQuarantined.has(id)),
+          };
+        });
+      }),
+    ),
+  )
+).flat();
+
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 console.log("\n| run | precision | recall | false flags | grounded claims | sec | calls |");
 console.log("|---|---|---|---|---|---|---|");
@@ -86,5 +115,22 @@ console.log("|---|---|---|---|");
 console.log(`| ${askResults.length} | ${statusOk}/${askResults.length} | ${citeOk}/${askResults.length} | ${bad}/${askResults.length} |`);
 for (const r of askResults.filter((x) => !x.status_ok)) console.log(`wrong status: "${r.question}" expected ${r.expected}, got ${r.got}`);
 
+const verdictOk = verifyResults.filter((r) => r.verdict_ok).length;
+const verifyBad = verifyResults.filter((r) => r.cited_bad_source).length;
+console.log(`
+| statements | right verdict | cited an outdated or quarantined source |`);
+console.log("|---|---|---|");
+console.log(`| ${verifyResults.length} | ${verdictOk}/${verifyResults.length} | ${verifyBad}/${verifyResults.length} |`);
+for (const v of ["supported", "contradicted", "disputed", "no_source"] as Verdict[]) {
+  const rows = verifyResults.filter((r) => r.expected === v);
+  if (rows.length) console.log(`${v}: ${rows.filter((r) => r.verdict_ok).length}/${rows.length}`);
+}
+for (const r of verifyResults.filter((x) => !x.verdict_ok)) {
+  console.log(`wrong verdict: ${r.draft} "${r.keywords.join(" ")}" expected ${r.expected}, got ${r.got}`);
+}
+
 mkdirSync("out", { recursive: true });
-writeFileSync(join("out", "eval.json"), JSON.stringify({ at: new Date().toISOString(), scanScores, askResults }, null, 2));
+writeFileSync(
+  join("out", "eval.json"),
+  JSON.stringify({ at: new Date().toISOString(), scanScores, askResults, verifyResults }, null, 2),
+);

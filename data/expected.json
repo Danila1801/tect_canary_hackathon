@@ -50,5 +50,40 @@
       "status": "blocked",
       "must_cite": []
     }
+  ],
+  "verify": [
+    {
+      "name": "salary history",
+      "draft": "Hi Els,\n\nThanks for your question. Your recruiters can keep asking candidates for their current gross salary during the first interview. Salary ranges only need to be shared once an offer is made.\n\nKind regards,\nAnn",
+      "statements": [
+        { "keywords": ["current gross salary"], "verdict": "contradicted" },
+        { "keywords": ["offer is made"], "verdict": "contradicted" }
+      ]
+    },
+    {
+      "name": "variable input cut-off",
+      "draft": "Hi Tom,\n\nFor your Belgian payroll, please upload the monthly variable input (overtime, bonuses, absences) by the 5th working day of the following month. Input that arrives after the cut-off is included in the next payroll.\n\nBest,\nMarc",
+      "statements": [
+        { "keywords": ["5th working day"], "verdict": "disputed" },
+        { "keywords": ["next payroll"], "verdict": "supported" }
+      ]
+    },
+    {
+      "name": "Dimona timing",
+      "draft": "Hi Nadia,\n\nThe Dimona IN declaration must be filed no later than the moment the employee starts working. We file it for you once the new employee is created in mysdworx.\n\nKind regards,\nAnn",
+      "statements": [
+        { "keywords": ["starts working"], "verdict": "supported" },
+        { "keywords": ["mysdworx"], "verdict": "supported" }
+      ]
+    },
+    {
+      "name": "pay information and bike allowance",
+      "draft": "Hi Pieter,\n\nYour employees have no right to any information about the pay of other employees, not even as an average. They also cannot ask what a named colleague earns. For your internal staff, the bike allowance is 0.35 euro per kilometre.\n\nBest regards,\nSofie",
+      "statements": [
+        { "keywords": ["no right"], "verdict": "contradicted" },
+        { "keywords": ["named colleague"], "verdict": "supported" },
+        { "keywords": ["bike allowance"], "verdict": "no_source" }
+      ]
+    }
   ]
 }
