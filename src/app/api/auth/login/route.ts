@@ -1,5 +1,5 @@
-import { checkPassword, json, sameOrigin, sessionCookie } from "@/lib/auth";
-import { clientKey, rateLimit } from "@/lib/ratelimit";
+import { checkPassword, json, sameOrigin, sessionCookie } from "@/canary/auth";
+import { clientKey, rateLimit } from "@/canary/ratelimit";
 
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return json({ error: "Cross-origin request refused" }, 403);

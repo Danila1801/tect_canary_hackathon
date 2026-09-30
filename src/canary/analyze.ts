@@ -157,6 +157,20 @@ export async function scan(allDocs: Doc[]): Promise<Analysis> {
   // Deterministic backstop: two sources giving different numbers for the same topic is a conflict,
   // whether or not the model noticed it.
   const numbers = (v: string) => (v.match(/\d+(?:[.,]\d+)?/g) ?? []).sort().join("|");
+  // Numbers are only comparable in the same unit: "EUR 140" vs "EUR 150", not "25%" vs "3 days".
+  const units = (v: string) =>
+    new Set(
+      v
+        .toLowerCase()
+        .replace(/\d+(st|nd|rd|th)/g, " ")
+        .replace(/[\d.,]+/g, " ")
+        .match(/[a-z%€]+/g)
+        ?.map((w) => w.replace(/s$/, "")) ?? [],
+    );
+  const sameUnit = (a: string, b: string) => {
+    const ub = units(b);
+    return [...units(a)].some((u) => ub.has(u));
+  };
   const related = new Set(relations.flatMap((r) => [`${r.a}>${r.b}`, `${r.b}>${r.a}`]));
   for (const [, cs] of comparable) {
     for (let i = 0; i < cs.length; i++) {
@@ -165,7 +179,7 @@ export async function scan(allDocs: Doc[]): Promise<Analysis> {
         const [da, db] = [docs.get(a.doc_id)!, docs.get(b.doc_id)!];
         if (a.doc_id === b.doc_id || da.country !== db.country || related.has(`${a.id}>${b.id}`)) continue;
         const [na, nb] = [numbers(a.value), numbers(b.value)];
-        if (na && nb && na !== nb) {
+        if (na && nb && na !== nb && sameUnit(a.value, b.value)) {
           relations.push({ a: a.id, b: b.id, relation: "contradicts", explanation: `Different values: "${a.value}" vs "${b.value}".` });
           related.add(`${a.id}>${b.id}`);
         }

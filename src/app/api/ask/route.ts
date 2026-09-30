@@ -1,7 +1,7 @@
-import { ask } from "@/lib/ask";
-import { json, requireUser } from "@/lib/auth";
-import { clientKey, rateLimit } from "@/lib/ratelimit";
-import { getAnalysis, getDocs, logGap } from "@/lib/store";
+import { ask } from "@/canary/ask";
+import { json, requireUser } from "@/canary/auth";
+import { clientKey, rateLimit } from "@/canary/ratelimit";
+import { getAnalysis, getDocs, logGap } from "@/canary/store";
 
 export async function POST(req: Request) {
   const user = requireUser(req, { mutation: true });

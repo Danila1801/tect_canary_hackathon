@@ -1,7 +1,7 @@
-import { scan } from "@/lib/analyze";
-import { json, requireUser } from "@/lib/auth";
-import { rateLimit } from "@/lib/ratelimit";
-import { getDocs, setAnalysis } from "@/lib/store";
+import { scan } from "@/canary/analyze";
+import { json, requireUser } from "@/canary/auth";
+import { rateLimit } from "@/canary/ratelimit";
+import { getDocs, setAnalysis } from "@/canary/store";
 
 export const maxDuration = 120;
 

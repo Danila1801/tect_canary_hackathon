@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { topicLabel } from "@/lib/topics";
-import type { Analysis, AskResult, Claim, Issue, IssueKind } from "@/lib/types";
+import { topicLabel } from "@/canary/topics";
+import type { Analysis, AskResult, Claim, Issue, IssueKind } from "@/canary/types";
 
 type Role = "consultant" | "owner" | "admin";
 interface Persona {

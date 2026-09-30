@@ -1,4 +1,4 @@
-import { getUser, json, USERS } from "@/lib/auth";
+import { getUser, json, USERS } from "@/canary/auth";
 
 export async function GET(req: Request) {
   const user = getUser(req);

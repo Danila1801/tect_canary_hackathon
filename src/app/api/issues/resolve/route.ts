@@ -1,5 +1,5 @@
-import { json, requireUser, userIdForOwner } from "@/lib/auth";
-import { getAnalysis, getResolutions, resolveIssue } from "@/lib/store";
+import { json, requireUser, userIdForOwner } from "@/canary/auth";
+import { getAnalysis, getResolutions, resolveIssue } from "@/canary/store";
 
 export async function POST(req: Request) {
   const user = requireUser(req, { mutation: true });

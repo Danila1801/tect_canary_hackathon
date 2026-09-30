@@ -1,5 +1,5 @@
-import { json, requireUser } from "@/lib/auth";
-import { getAnalysis, getGaps, getResolutions } from "@/lib/store";
+import { json, requireUser } from "@/canary/auth";
+import { getAnalysis, getGaps, getResolutions } from "@/canary/store";
 
 export async function GET(req: Request) {
   const user = requireUser(req);

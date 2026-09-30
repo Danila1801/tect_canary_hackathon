@@ -1,4 +1,4 @@
-import { clearedCookie, endSession, json, sameOrigin } from "@/lib/auth";
+import { clearedCookie, endSession, json, sameOrigin } from "@/canary/auth";
 
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return json({ error: "Cross-origin request refused" }, 403);

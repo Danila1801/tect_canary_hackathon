@@ -1,6 +1,13 @@
-# Canary: knowledge that knows when it's wrong
+<img src="public/logo.svg" alt="Canary" width="120">
 
-Tectonic Hackathon 2026, SD Worx track: *"How might we turn fragmented organisational knowledge into a trusted shared resource?"*
+# Canary
+
+Knowledge that knows when it's wrong.
+
+Tectonic Hackathon 2026, SD Worx track: *"How might we turn fragmented organisational knowledge into a trusted
+shared resource?"*
+
+Demo video: *link in the Builderbase submission* · Pitch: [`presentation/`](presentation/)
 
 ## The problem
 
@@ -35,6 +42,10 @@ It also catches a payroll cut-off date that differs between the wiki (3rd workin
 employees. And it quarantines a Teams message that contains a hidden prompt injection.
 
 All documents, people and clients in `data/corpus/` are **synthetic**, written for this demo.
+
+## Results
+
+<!-- RESULTS -->
 
 ## How it works
 
@@ -81,22 +92,37 @@ Aikido audit screenshots are in the submission. Measures in the code:
 
 ## Run it
 
-```bash
-npm install
-cp .env.example .env.local   # fill in LLM key, SESSION_SECRET and three passwords
-npm run dev                  # http://localhost:3000
+Node 24+ (scripts and tests run TypeScript directly, no build step).
+
 ```
+npm install
+cp .env.example .env.local   # LLM key, SESSION_SECRET and one password per persona
+npm run dev                  # http://localhost:3000
+npm run check                # typecheck, lint, 22 tests
+npm run scan                 # rebuild data/analysis.json from data/corpus/
+npm run eval                 # score scan and Q&A against data/expected.json (3 scans, 16 answers)
+```
+
+`make dev`, `make test`, `make check`, `make scan` and `make eval` do the same on macOS and Linux.
 
 Sign in as **Ann Peeters** (payroll consultant), **Marc Dubois** (content owner) or **Sofie Claes**
-(knowledge admin, can re-scan). Re-run the analysis offline with:
+(knowledge admin, can re-scan).
 
-```bash
-node --env-file=.env.local scripts/scan.ts
+Any OpenAI-compatible endpoint works. We used Nebius Token Factory with `Qwen/Qwen3-235B-A22B-Instruct-2507`. The
+committed `data/analysis.json` lets the app run without re-scanning.
+
+## Layout
+
 ```
-
-Any OpenAI-compatible endpoint works. We used Nebius Token Factory with `Qwen/Qwen3-235B-A22B-Instruct-2507`. A full
-scan of 17 sources takes ~30 model calls and ~25 s. The committed `data/analysis.json` lets the app run without
-re-scanning.
+data/corpus/        17 synthetic sources (policies, FAQs, wiki, templates, mails, Teams, tickets, a legal alert)
+data/expected.json  ground truth for the eval: planted problems, clean documents, Q&A cases
+data/analysis.json  committed scan output the app starts from
+src/canary/         engine: corpus, security, analyze, ask, auth, ratelimit, store
+src/app/            Next.js UI (canary-app.tsx) and API routes (api/*)
+scripts/            scan.ts, eval.ts
+tests/              node:test suites: grounding, security, auth, rate limits, analysis invariants
+presentation/       demo script, Q&A prep, submission text
+```
 
 ## What is unfinished
 
