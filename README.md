@@ -137,7 +137,7 @@ data/corpus/        17 made-up documents: policies, FAQs, wiki, contract templat
 data/expected.json  the known answers used to score Canary
 data/analysis.json  the saved scan the app starts from
 src/canary/         the engine: loading, safety check, analysis, Q&A, sign-in, rate limits
-src/app/            the web app (canary-app.tsx) and its API (api/*)
+src/app/            the web app (ui/CanaryApp.tsx, design from Lovable) and its API (api/*)
 scripts/            scan.ts and eval.ts
 tests/              22 automated tests
 presentation/       demo script, likely judge questions, submission text

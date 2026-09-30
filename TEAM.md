@@ -7,7 +7,7 @@
 | Who | Owns | Files |
 |---|---|---|
 | Danil | Backend, security, Aikido audit | `src/canary/`, `src/app/api/`, `scripts/`, `tests/` |
-| Frontend | The look of the app | `src/app/canary-app.tsx`, `src/app/globals.css` |
+| Frontend | The look of the app | `src/app/ui/CanaryApp.tsx`, `src/app/globals.css` |
 | Presentation | Video, pitch, submission text | `presentation/` |
 
 Two people editing the same file causes merge conflicts. If you need a change in someone else's files, ask them.
@@ -15,7 +15,7 @@ Two people editing the same file causes merge conflicts. If you need a change in
 ## Checklist until we submit
 
 - [ ] **Aikido**: run the Code Security Audit and screenshot it (*before*). Fix the findings, mark them resolved, then screenshot again (*after*). (Danil)
-- [ ] **New look** (dark green, green, dark blue): the design is being built in Lovable, then copied into `canary-app.tsx`. (Frontend + Claude)
+- [x] **New look** (dark navy, deep green, fresh green): designed in Lovable, now live in `src/app/ui/CanaryApp.tsx`.
 - [ ] **Freeze the code at 21:45.** After that, only fixes for bugs we see in the demo.
 - [ ] **Record the demo video**, under 3 minutes, with `presentation/demo-script.md`. Upload it to YouTube as *Unlisted*. (Presentation)
 - [ ] **Builderbase**, 4 fields:

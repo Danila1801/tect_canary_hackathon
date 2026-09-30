@@ -35,7 +35,9 @@ to an OpenAI-compatible endpoint (Nebius Token Factory by default): `LLM_BASE_UR
   same-origin check. `ratelimit.ts`: fixed-window limits.
 - `src/canary/store.ts`: in-memory state (analysis, resolutions, gaps), seeded from `data/*.json`.
 - `src/app/api/*`: route handlers, each one calls `requireUser` first.
-- `src/app/canary-app.tsx`: the whole UI (Ask, Detect, Trust, Connect). Frontend work goes here.
+- `src/app/ui/CanaryApp.tsx`: the whole UI (sign-in, Ask, Detect, Trust, Connect). Visual design generated in
+  Lovable, wired to the API. Colours are tokens in `src/app/globals.css`. Frontend work goes here.
+- `src/app/canary-app.tsx`: connects the UI to the API (sign-in, ask, resolve, re-scan).
 - `scripts/scan.ts`: rebuilds `data/analysis.json` and `data/corpus.json`.
 - `scripts/eval.ts`: scores the scan and the Q&A against `data/expected.json`.
 - `presentation/`: pitch script, Q&A prep, submission text.
@@ -43,7 +45,7 @@ to an OpenAI-compatible endpoint (Nebius Token Factory by default): `LLM_BASE_UR
 ## Team, 30 Sep 2026
 
 - Backend (`src/canary/`, `src/app/api/`, `scripts/`, `tests/`): Danil
-- Frontend (`src/app/canary-app.tsx`, `globals.css`): frontend teammate
+- Frontend (`src/app/ui/CanaryApp.tsx`, `globals.css`): frontend teammate
 - Pitch and video (`presentation/`): presentation teammate
 
 @AGENTS.md

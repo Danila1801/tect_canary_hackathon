@@ -38,8 +38,9 @@ Tip: record the screen first, then record the voice over it. Speak slowly. It's 
 > documents, each with a suggested rewrite and an owner. And here's the deadline conflict, with a ticket that
 > proves it already delayed overtime pay for 37 employees."
 
-**1:50, click Approve on Marc's playbook card (you are still Ann).**
-> "Ann can't approve Marc's document. The server checks who owns it. The owner decides, not the AI."
+**1:50, point at the locked Approve button on Marc's playbook card (you are still Ann).**
+> "Ann can't approve Marc's document: the button is locked, and the server enforces the same rule. The owner
+> decides, not the AI."
 
 **2:00, scroll to the "Only in chats" card.**
 > "Cross-border payroll only lives in three chats by Jonas. There's no official page. Canary drafts the article

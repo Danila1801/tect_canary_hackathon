@@ -1,20 +1,93 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* Design tokens from the Lovable design (dark navy, deep green, fresh green). */
 @theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-navy: var(--navy);
+  --color-navy-soft: var(--navy-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-conflict: var(--conflict);
+  --color-conflict-soft: var(--conflict-soft);
+  --color-conflict-foreground: var(--conflict-foreground);
+  --color-chat: var(--chat);
+  --color-chat-soft: var(--chat-soft);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-ink: var(--ink);
+  --color-brand-bird: var(--brand-bird);
 }
 
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.977 0.006 140);
+  --foreground: oklch(0.21 0.025 220);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.36 0.092 165);
+  --primary-foreground: oklch(1 0 0);
+  --muted: oklch(0.953 0.006 140);
+  --muted-foreground: oklch(0.49 0.025 220);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.89 0.012 180);
+  --input: oklch(0.89 0.012 180);
+  --ring: oklch(0.54 0.14 163);
+  --navy: oklch(0.24 0.045 254);
+  --navy-soft: oklch(0.31 0.046 252);
+  --success: oklch(0.66 0.16 162);
+  --success-soft: oklch(0.95 0.045 160);
+  --success-foreground: oklch(0.31 0.095 165);
+  --warning: oklch(0.7 0.14 82);
+  --warning-soft: oklch(0.965 0.052 87);
+  --warning-foreground: oklch(0.41 0.085 70);
+  --conflict: oklch(0.69 0.15 50);
+  --conflict-soft: oklch(0.962 0.045 50);
+  --conflict-foreground: oklch(0.43 0.12 44);
+  --chat: oklch(0.63 0.12 235);
+  --chat-soft: oklch(0.95 0.025 230);
+  --danger-soft: oklch(0.96 0.035 25);
+  --danger-foreground: oklch(0.46 0.15 25);
+  --ink: oklch(0.18 0.018 230);
+  --brand-bird: oklch(0.89 0.17 95);
+}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
