@@ -60,6 +60,25 @@ We also asked 8 questions twice each (16 answers):
 |---|---|---|
 | 16/16 | 16/16 | 0/16 |
 
+**Verify.** We wrote 4 synthetic draft replies with 9 factual statements between them: the salary-history ban,
+the 3rd vs 5th working day cut-off, Dimona timing, the pay-information right and a bike allowance nothing covers.
+Each draft went through Verify twice (18 statements):
+
+| statements | right verdict | cited an outdated or poisoned source |
+|---|---|---|
+| 18 | 12/18 | 0/18 |
+
+By verdict: contradicted 6/6, no source 2/2, supported 4/8, disputed 0/2.
+
+- Every wrong statement was caught: the salary-history and "no right to pay information" claims were flagged
+  contradicted in both runs, and the bike allowance was never confirmed. The misses go the other way. Twice
+  Verify called "5th working day" *contradicted* (citing the newer Payroll Ops wiki) where we expected
+  *disputed*; the consultant is still stopped from sending it. Four times a correct sentence got no verdict at all
+  (the model skipped it, or its text didn't match the draft exactly and code dropped it). That is the weak spot: a
+  sentence that isn't checked isn't flagged either.
+- 0 outdated or poisoned citations is guaranteed by code, not by the model: Verify throws those citations away
+  before it shows anything.
+
 Honest notes:
 
 - The very first eval run found a false conflict: it compared "25%" with "3 days" because both are numbers. We
