@@ -33,11 +33,15 @@ You need Node 24 or newer.
 git clone https://github.com/Danila1801/tect_canary_hackathon.git
 cd tect_canary_hackathon
 npm install
-cp .env.example .env.local
+npm run setup
 npm run dev
 ```
 
-Open http://localhost:3000. Danil sends you the values for `.env.local` in a private message. **Never commit that file or paste it anywhere public.**
+`npm run setup` creates `.env.local` with a session secret and one password per person. It never overwrites an existing file. Add the AI key on the `LLM_API_KEY=` line (Danil sends it in a private message). **Never commit that file or paste it anywhere public.**
+
+The passwords are in `.env.local`, in the `CANARY_PASSWORD_ANN`, `CANARY_PASSWORD_MARC` and `CANARY_PASSWORD_SOFIE` lines. **Don't copy `.env.example` over `.env.local`:** that wipes the key and all the passwords.
+
+Open http://localhost:3000.
 
 Sign in as:
 

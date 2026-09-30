@@ -11,7 +11,8 @@
     "test": "node --test \"tests/*.test.ts\"",
     "check": "npm run typecheck && npm run lint && npm test",
     "scan": "node --env-file=.env.local scripts/scan.ts",
-    "eval": "node --env-file=.env.local scripts/eval.ts"
+    "eval": "node --env-file=.env.local scripts/eval.ts",
+    "setup": "node scripts/setup-env.ts"
   },
   "dependencies": {
     "lucide-react": "^1.49.0",

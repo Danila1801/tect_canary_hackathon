@@ -115,7 +115,7 @@ You need Node 24 or newer.
 
 ```
 npm install
-cp .env.example .env.local   # add the AI key, a session secret and one password per person
+npm run setup                # creates .env.local with a session secret and passwords; add the AI key
 npm run dev                  # open http://localhost:3000
 ```
 
