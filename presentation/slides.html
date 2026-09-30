@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canary slides</title>
+<style>
+  :root {
+    --navy: #0B1F3A;
+    --navy-2: #102A4C;
+    --deep: #064E3B;
+    --green: #10B981;
+    --canary: #F5C518;
+    --red: #F87171;
+    --text: #F1F5F9;
+    --muted: #94A3B8;
+    --line: rgba(148, 163, 184, 0.22);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #050E1C; overflow: hidden; }
+  body {
+    font-family: Inter, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 1920x1080 stage, scaled to fit any window (letterboxed at 16:9) */
+  #stage {
+    position: absolute; top: 50%; left: 50%;
+    width: 1920px; height: 1080px;
+    transform-origin: center center;
+  }
+  .slide {
+    position: absolute; inset: 0;
+    padding: 150px 150px 110px;
+    display: flex; flex-direction: column; justify-content: center;
+    background:
+      radial-gradient(1200px 700px at 88% 110%, rgba(16, 185, 129, 0.16), transparent 60%),
+      radial-gradient(900px 600px at -5% -10%, rgba(6, 78, 59, 0.55), transparent 60%),
+      var(--navy);
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.45s ease, visibility 0.45s;
+  }
+  .slide.active { opacity: 1; visibility: visible; }
+
+  /* Small persistent brand mark */
+  .brand {
+    position: absolute; top: 56px; left: 150px;
+    display: flex; align-items: center; gap: 16px;
+    font-size: 30px; font-weight: 700; letter-spacing: -0.01em; color: var(--text);
+  }
+  .brand svg { width: 44px; height: 44px; }
+  .pageno {
+    position: absolute; bottom: 56px; right: 150px;
+    font-size: 24px; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+
+  .kicker {
+    font-size: 30px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--green); margin-bottom: 36px;
+  }
+  h1 { font-size: 132px; line-height: 1.02; font-weight: 800; letter-spacing: -0.035em; }
+  h2 { font-size: 88px; line-height: 1.06; font-weight: 800; letter-spacing: -0.03em; }
+  .accent { color: var(--green); }
+  .yellow { color: var(--canary); }
+  .muted { color: var(--muted); }
+
+  /* 1. Title */
+  .title-wrap { display: flex; align-items: center; gap: 90px; }
+  .title-bird svg { width: 300px; height: 300px; filter: drop-shadow(0 30px 60px rgba(245, 197, 24, 0.22)); }
+  .title-name { font-size: 190px; font-weight: 800; letter-spacing: -0.045em; line-height: 0.95; }
+  .title-tag { font-size: 64px; font-weight: 600; letter-spacing: -0.02em; margin-top: 28px; line-height: 1.15; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 14px;
+    margin-top: 64px; padding: 18px 34px; border-radius: 999px;
+    background: rgba(6, 78, 59, 0.7); border: 2px solid rgba(16, 185, 129, 0.45);
+    font-size: 32px; font-weight: 600;
+  }
+  .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--canary); }
+
+  /* 2. Moment of doubt */
+  .doubt { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; margin-top: 70px; align-items: start; }
+  .bubble {
+    padding: 36px 44px; border-radius: 34px; font-size: 44px; line-height: 1.25; font-weight: 600;
+  }
+  .bubble .who { display: block; font-size: 24px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .client { background: var(--navy-2); border: 2px solid var(--line); border-top-left-radius: 8px; }
+  .bot { background: rgba(248, 113, 113, 0.1); border: 2px solid rgba(248, 113, 113, 0.5); border-top-right-radius: 8px; margin-top: 44px; }
+  .bot .verdict { display: block; margin-top: 18px; font-size: 30px; color: var(--red); font-weight: 700; }
+  .doc {
+    padding: 36px 44px; border-radius: 22px; background: #0E2544; border: 2px solid var(--line);
+  }
+  .doc .who { display: block; font-size: 24px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; font-weight: 600; }
+  .doc .quote { font-size: 48px; font-weight: 700; line-height: 1.2; }
+  .doc .quote s { text-decoration-color: var(--red); text-decoration-thickness: 6px; }
+  .law {
+    margin-top: 32px; display: flex; align-items: center; gap: 22px;
+    padding: 28px 40px; border-radius: 22px; background: rgba(245, 197, 24, 0.1);
+    border: 2px solid rgba(245, 197, 24, 0.55); font-size: 40px; font-weight: 700;
+  }
+  .law .date { color: var(--canary); }
+
+  /* 3. The gap */
+  .gap { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 28px; margin-top: 64px; }
+  .box {
+    padding: 48px 40px; border-radius: 28px; text-align: center; background: var(--navy-2); border: 2px solid var(--line);
+  }
+  .box .name { white-space: nowrap; font-size: 54px; font-weight: 800; letter-spacing: -0.02em; }
+  .box .sub { font-size: 32px; color: var(--muted); margin-top: 10px; font-weight: 500; }
+  .box.canary { background: var(--deep); border-color: var(--green); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0.12); }
+  .box.canary .name { display: flex; align-items: center; justify-content: center; gap: 18px; }
+  .box.canary svg { width: 60px; height: 60px; }
+  .box.canary .sub { color: #A7F3D0; }
+  .link { width: 80px; height: 6px; border-radius: 3px; background: var(--green); position: relative; }
+  .link::before, .link::after { content: ""; position: absolute; top: 50%; width: 22px; height: 22px; margin-top: -11px; border-radius: 50%; background: var(--green); }
+  .link::before { left: -8px; } .link::after { right: -8px; }
+  .gap-q { margin-top: 70px; font-size: 56px; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+
+  /* 4. What it does */
+  .features { display: grid; grid-template-columns: repeat(5, 1fr); gap: 28px; margin-top: 80px; }
+  .feat {
+    padding: 44px 34px; border-radius: 28px; background: var(--navy-2); border: 2px solid var(--line);
+    min-height: 400px; display: flex; flex-direction: column;
+  }
+  .feat .n { font-size: 26px; font-weight: 700; color: var(--green); font-variant-numeric: tabular-nums; }
+  .feat .name { font-size: 54px; font-weight: 800; letter-spacing: -0.02em; margin-top: 18px; }
+  .feat .sub { font-size: 30px; color: #CBD5E1; margin-top: auto; line-height: 1.3; font-weight: 500; }
+  .feat.hero { background: var(--deep); border-color: var(--green); }
+  .labels { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 24px; }
+  .lab { font-size: 20px; font-weight: 700; padding: 6px 14px; border-radius: 999px; }
+  .lab.v { background: rgba(16, 185, 129, 0.2); color: #6EE7B7; }
+  .lab.u { background: rgba(245, 197, 24, 0.18); color: #FDE68A; }
+  .lab.d { background: rgba(248, 113, 113, 0.18); color: #FCA5A5; }
+
+  /* 5. Proof */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; margin-top: 70px; }
+  .stat { padding: 44px 36px; border-radius: 28px; background: var(--navy-2); border: 2px solid var(--line); }
+  .stat .big { font-size: 118px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: var(--green); font-variant-numeric: tabular-nums; }
+  .stat .big.word { font-size: 78px; line-height: 1.5; color: var(--canary); letter-spacing: -0.02em; }
+  .stat .lbl { font-size: 30px; font-weight: 600; margin-top: 20px; line-height: 1.25; }
+  .stat .note { font-size: 24px; color: var(--muted); margin-top: 10px; }
+  .motto {
+    margin-top: 80px; font-size: 76px; font-weight: 800; letter-spacing: -0.03em;
+  }
+
+  /* 6. Next step */
+  .pilot { display: flex; align-items: center; gap: 26px; margin-top: 70px; }
+  .step {
+    padding: 30px 40px; border-radius: 22px; font-size: 42px; font-weight: 700;
+    background: var(--navy-2); border: 2px solid var(--line);
+  }
+  .step.mid { background: var(--deep); border-color: var(--green); display: flex; align-items: center; gap: 16px; }
+  .step.mid svg { width: 48px; height: 48px; }
+  .arrow { font-size: 56px; color: var(--green); font-weight: 800; }
+  .country { font-size: 34px; color: var(--muted); margin-left: 20px; font-weight: 600; }
+  .closing { margin-top: 110px; font-size: 80px; font-weight: 800; line-height: 1.15; letter-spacing: -0.03em; }
+  .closing .from { color: var(--muted); }
+
+  /* Navigation hint */
+  #progress { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 5; }
+  #progress button {
+    width: 12px; height: 12px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(148, 163, 184, 0.35); transition: background 0.2s, width 0.2s;
+  }
+  #progress button.on { background: var(--green); width: 32px; border-radius: 6px; }
+  body.clean #progress { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Canary mark, reused inline (no external requests) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="bird" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="15" fill="#F5C518"/>
+    <path d="M9 18c0-4.4 3.1-8 7.5-8 3.2 0 5.5 1.9 6.3 4.4L26 15l-3.2 1.2C22.3 20 19.5 23 15.5 23 12 23 9 21 9 18z" fill="#0B1F3A"/>
+    <circle cx="18.6" cy="14.2" r="1.1" fill="#F5C518"/>
+  </symbol>
+</svg>
+
+<div id="stage">
+
+  <!-- 1. Title -->
+  <section class="slide" aria-label="Title">
+    <div class="title-wrap">
+      <div class="title-bird"><svg><use href="#bird"/></svg></div>
+      <div>
+        <div class="title-name">Canary</div>
+        <div class="title-tag">Knowledge that knows<br>when it's <span class="accent">wrong</span>.</div>
+        <div class="pill"><span class="dot"></span>SD Worx track · Tectonic Hackathon 2026</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. The moment of doubt -->
+  <section class="slide" aria-label="The moment of doubt">
+    <div class="brand"><svg><use href="#bird"/></svg>Canary</div>
+    <div class="kicker">The moment of doubt</div>
+    <h2>The answer exists. <span class="muted">It's just wrong.</span></h2>
+    <div class="doubt">
+      <div>
+        <div class="bubble client"><span class="who">Client</span>“Can our recruiters still ask candidates what they earn?”</div>
+        <div class="bubble bot"><span class="who">A normal assistant</span>“Yes. Always ask for their current salary.”<span class="verdict">✕ Wrong, and confident about it</span></div>
+      </div>
+      <div>
+        <div class="doc"><span class="who">Our own recruitment playbook</span><div class="quote"><s>“Always ask for their current salary.”</s></div></div>
+        <div class="law"><span class="dot"></span><span>The law changed on <span class="date">7 June 2026</span></span></div>
+      </div>
+    </div>
+    <div class="pageno">2</div>
+  </section>
+
+  <!-- 3. The gap -->
+  <section class="slide" aria-label="The gap">
+    <div class="brand"><svg><use href="#bird"/></svg>Canary</div>
+    <div class="kicker">The gap</div>
+    <h2>SD Worx has the pieces.<br><span class="accent">Canary links them.</span></h2>
+    <div class="gap">
+      <div class="box"><div class="name">Find</div><div class="sub">the assistant</div></div>
+      <div class="link"></div>
+      <div class="box canary"><div class="name"><svg><use href="#bird"/></svg>Canary</div><div class="sub">the missing link</div></div>
+      <div class="link"></div>
+      <div class="box"><div class="name">Legal Watch</div><div class="sub">the law</div></div>
+    </div>
+    <div class="gap-q">Which of <span class="yellow">our own</span> documents just became wrong,<br>and who fixes them?</div>
+    <div class="pageno">3</div>
+  </section>
+
+  <!-- 4. What it does -->
+  <section class="slide" aria-label="What it does">
+    <div class="brand"><svg><use href="#bird"/></svg>Canary</div>
+    <div class="kicker">What it does</div>
+    <h2>Know what you can send.</h2>
+    <div class="features">
+      <div class="feat hero">
+        <div class="n">01</div><div class="name">Ask</div>
+        <div class="labels"><span class="lab v">verified</span><span class="lab u">unverified</span><span class="lab d">disputed</span></div>
+        <div class="sub">Every answer gets a trust label</div>
+      </div>
+      <div class="feat hero">
+        <div class="n">02</div><div class="name">Verify</div>
+        <div class="sub">Check a reply before you send it</div>
+      </div>
+      <div class="feat">
+        <div class="n">03</div><div class="name">Detect</div>
+        <div class="sub">Find what the law made wrong</div>
+      </div>
+      <div class="feat">
+        <div class="n">04</div><div class="name">Trust</div>
+        <div class="sub">A score you can read line by line</div>
+      </div>
+      <div class="feat">
+        <div class="n">05</div><div class="name">Connect</div>
+        <div class="sub">Who to ask when documents aren't enough</div>
+      </div>
+    </div>
+    <div class="pageno">4</div>
+  </section>
+
+  <!-- 5. Proof -->
+  <section class="slide" aria-label="Proof">
+    <div class="brand"><svg><use href="#bird"/></svg>Canary</div>
+    <div class="kicker">Proof</div>
+    <h2>Measured, not promised.</h2>
+    <div class="stats">
+      <div class="stat"><div class="big">7/7</div><div class="lbl">planted problems found</div><div class="note">0 false alarms · 3 runs</div></div>
+      <div class="stat"><div class="big">16/16</div><div class="lbl">answers correct</div><div class="note">0 outdated sources cited</div></div>
+      <div class="stat"><div class="big">40/40</div><div class="lbl">facts traced to an exact sentence</div></div>
+      <div class="stat"><div class="big word">Aikido</div><div class="lbl">security audited</div></div>
+    </div>
+    <div class="motto">The AI finds, <span class="accent">the code decides.</span></div>
+    <div class="pageno">5</div>
+  </section>
+
+  <!-- 6. Next step -->
+  <section class="slide" aria-label="Next step">
+    <div class="brand"><svg><use href="#bird"/></svg>Canary</div>
+    <div class="kicker">Next step</div>
+    <h2>A pilot, one country.</h2>
+    <div class="pilot">
+      <div class="step">Legal Watch</div>
+      <div class="arrow">→</div>
+      <div class="step mid"><svg><use href="#bird"/></svg>Canary</div>
+      <div class="arrow">→</div>
+      <div class="step">The existing assistant</div>
+    </div>
+    <div class="closing"><span class="from">From “I found something”</span><br>to “I know I can <span class="accent">send</span> this.”</div>
+    <div class="pageno">6</div>
+  </section>
+
+</div>
+
+<nav id="progress" aria-label="Slides"></nav>
+
+<script>
+  (function () {
+    var stage = document.getElementById('stage');
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var progress = document.getElementById('progress');
+    var current = 0;
+
+    slides.forEach(function (_, i) {
+      var b = document.createElement('button');
+      b.setAttribute('aria-label', 'Slide ' + (i + 1));
+      b.addEventListener('click', function (e) { e.stopPropagation(); go(i); });
+      progress.appendChild(b);
+    });
+
+    function fit() {
+      var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+      stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+    }
+
+    function go(i) {
+      current = Math.max(0, Math.min(slides.length - 1, i));
+      slides.forEach(function (el, j) { el.classList.toggle('active', j === current); });
+      Array.prototype.forEach.call(progress.children, function (b, j) { b.classList.toggle('on', j === current); });
+      if (location.hash !== '#' + (current + 1)) history.replaceState(null, '', '#' + (current + 1));
+    }
+
+    document.addEventListener('keydown', function (e) {
+      var k = e.key;
+      if (k === 'ArrowRight' || k === 'ArrowDown' || k === 'PageDown' || k === ' ' || k === 'Enter') { e.preventDefault(); go(current + 1); }
+      else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp' || k === 'Backspace') { e.preventDefault(); go(current - 1); }
+      else if (k === 'Home') go(0);
+      else if (k === 'End') go(slides.length - 1);
+      else if (k === 'f' || k === 'F') {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+        else document.exitFullscreen && document.exitFullscreen();
+      }
+      else if (k === 'h' || k === 'H') document.body.classList.toggle('clean');
+      else if (/^[1-9]$/.test(k)) go(parseInt(k, 10) - 1);
+    });
+
+    document.addEventListener('click', function (e) {
+      if (e.clientX < window.innerWidth / 3) go(current - 1); else go(current + 1);
+    });
+
+    window.addEventListener('resize', fit);
+    fit();
+    var start = parseInt((location.hash || '#1').slice(1), 10);
+    go(isNaN(start) ? 0 : start - 1);
+  })();
+</script>
+</body>
+</html>
