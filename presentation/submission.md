@@ -1,30 +1,48 @@
 # Builderbase description (copy and paste)
 
-**Canary: knowledge that knows when it's wrong.**
+Canary: knowledge that knows when it's wrong.
 
 A client asks: "Can our recruiters still ask candidates what they earn?" The company's own playbook says yes. Since
-June 2026 that's illegal. A normal AI assistant repeats the wrong answer, confidently.
+the EU Pay Transparency Directive (deadline 7 June 2026), that's no longer allowed. A normal AI assistant finds the
+playbook and repeats the wrong answer, confidently.
 
-SD Worx already has a search assistant and Legal Watch, which tracks new laws. Canary is the missing link: when the
-law changes, it finds which internal documents just became wrong and sends each one to its owner with a suggested
-fix. It also finds documents that contradict each other, documents with no owner, documents meant for another
-country, and knowledge that only lives in chats. It turns that chat knowledge into draft articles for the expert to
-approve.
+ORIGINALITY
+SD Worx already has Find (an assistant over 100,000+ internal documents) and Legal Watch (external law changes).
+Canary is the missing link: when the law changes, which of our own documents just became wrong, and who fixes them?
+It also checks a consultant's reply before it reaches a client, which is the last moment a wrong answer is still
+cheap to fix.
 
-Before a consultant sends a reply, Canary checks every claim in it: wrong, disputed, unsourced or supported, with a
-safe version to send instead. That's the moment a wrong answer is still cheap to fix.
+APPLICABILITY TO THE CHALLENGE (Find, Trust, Share; Trust, Capture, Detect, Connect)
+- Ask: every answer is labelled verified, unverified, sources disagree or no trusted source, with the exact
+  sentences behind it, what was ignored and why, and who to talk to.
+- Verify: paste a draft reply. Every claim comes back wrong, disputed, unsourced or supported, with a safe version
+  to send.
+- Handover: a day-one briefing for a consultant taking over a portfolio. It shows what changed by law, what's
+  disputed, what only lives in someone's head, and who to ask.
+- Detect: statements outdated by a legal change, internal contradictions, documents with no owner or for another
+  country, and knowledge that only lives in chats (turned into a draft article for the expert to approve).
+- Trust: every source gets a score from a visible formula. Connect: questions the documents can't answer go to the
+  right expert and are logged as knowledge gaps.
 
-A consultant who takes over a portfolio gets a day-one briefing: what changed by law, what's disputed, what only
-lives in someone's head, and who to ask.
+Demo (17 synthetic sources: policies, FAQs, wiki, contract template, emails, Teams threads, tickets): one real legal
+change is traced through every source. It finds 5 wrong statements in 3 documents, 2 internal conflicts (one
+already caused a ticket: overtime missing for 37 employees), 2 topics that only exist in one expert's chats, and 1
+Teams message with a hidden prompt injection, which is quarantined before any AI reads it.
 
-Every answer shows whether you can trust it (verified, unverified, sources disagree, no trusted source), the exact
-sentences behind it, what it ignored and why, and who to talk to when documents aren't enough.
+TECHNICAL ABILITY
+Rule: the AI finds, the code decides. Model: Qwen3-235B-A22B-Instruct-2507 (open weights) on Nebius Token Factory.
+It's about €0.002 per check; GLM-5.3-Flash timed out in our comparison. Every fact must be quoted word for word from
+its source, and code re-checks every citation and every verdict. Measured with our eval script against planted
+ground truth:
+- Scan, 3 runs: 7/7 planted problems found, 100% precision, 0 false alarms, 40/40 facts traced to an exact sentence.
+- Q&A: 16/16 answers with the right status, 0/16 citing an outdated or poisoned source.
+- Verify: all 6 wrong statements caught, 14/18 verdicts correct, 0/18 bad citations.
+31 automated tests. Next.js 16 + TypeScript, UI designed with Lovable, no AI SDK (plain fetch).
 
-Our rule: the AI finds, the code decides. Every fact is traced word for word to its source, and every citation is
-checked again by code. In our tests Canary found 7 out of 7 planted problems with 0 false alarms, 3 runs in a row.
-16 out of 16 answers were correct.
+SECURITY
+Per-user sign-in with signed, revocable sessions; roles checked on the server; only a document's owner or an admin
+can approve a fix (no IDOR); CSRF origin checks; rate limits and request-size limits; prompt-injection quarantine for
+sources and questions; strict security headers; no secrets in the repo. Details in SECURITY.md. Aikido standard
+scan: 0 issues. The Aikido AI Code Audit has been queued since 20:19.
 
-Security: personal logins with sessions that really end on sign-out, owner-only approvals, attack protection, rate
-limits, and quarantine for documents that try to hijack the AI. Audited with Aikido.
-
-All demo documents are synthetic. The law is real: the EU Pay Transparency Directive (deadline 7 June 2026).
+All documents, people and clients are synthetic. The law is real.
